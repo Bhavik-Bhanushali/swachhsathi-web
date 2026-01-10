@@ -1,0 +1,120 @@
+.worker-page {
+  padding: 2rem;
+  background: #f8fafc;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.worker-card {
+  background: #ffffff;
+  flex: 1;
+  min-width: 350px;
+  max-width: calc(50% - 1rem);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  height: auto;
+}
+
+.worker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+}
+
+.worker-header h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.worker-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+/* Worker List */
+.worker-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.worker-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.worker-row:last-child {
+  border-bottom: none;
+}
+
+/* Left section */
+.worker-left {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.worker-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.worker-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.worker-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.worker-meta {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Status */
+.worker-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* Status colors */
+.dot-active {
+  background: #22c55e;
+}
+
+.dot-inactive {
+  background: #94a3b8;
+}
+
+.dot-unassigned {
+  background: #f59e0b;
+}
+
+.status-label {
+  color: #475569;
+}

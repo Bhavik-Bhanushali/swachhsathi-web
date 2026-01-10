@@ -4,6 +4,7 @@ import LandingPage from './pages/LandingPage';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 import Dashboard from './pages/Dashboard';
+import WorkerListPage from './pages/WorkerListPage';
 
 import ProtectedRoute from './routes/ProtectedRoute';
 import PublicRoute from './routes/PublicRoute';
@@ -42,6 +43,7 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        
       </Routes>
     </>
   );
