@@ -1,0 +1,175 @@
+.signup-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f8fafc, #eef2ff);
+  }
+  
+  /* Navbar */
+  .signup-navbar {
+    padding: 1rem 0;
+  }
+  
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  
+  .logo-image {
+    width: 40px;
+  }
+  
+  .logo-text {
+    font-weight: 700;
+    font-size: 1.3rem;
+  }
+  
+  /* Layout */
+  .signup-container {
+    display: flex;
+    justify-content: center;
+    padding: 4rem 1rem;
+  }
+  
+  .signup-card {
+    background: white;
+    border-radius: 18px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.08);
+    animation: fadeUp 0.6s ease;
+  }
+  
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .signup-title {
+    font-size: 1.9rem;
+    font-weight: 700;
+    text-align: center;
+  }
+  
+  .signup-subtitle {
+    text-align: center;
+    color: #64748b;
+    margin-top: 0.4rem;
+  }
+  
+  .gradient-text {
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  /* Form */
+  .signup-form {
+    margin-top: 2rem;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.3rem;
+  }
+  
+  .form-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+  }
+  
+  .form-group input {
+    padding: 0.75rem 0.8rem;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    font-size: 0.95rem;
+  }
+  
+  .form-group input:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+  
+  /* Categories */
+  .categories-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 0.4rem;
+  }
+  
+  .category-chip {
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    background: #f8fafc;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .category-chip.selected {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+  }
+  
+  .required {
+    color: #ef4444;
+  }
+  
+  .error-text {
+    color: #ef4444;
+    font-size: 0.8rem;
+    margin-top: 0.3rem;
+  }
+  
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+  }
+  
+  .btn-primary {
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    color: white;
+  }
+  
+  .btn-full {
+    width: 100%;
+    padding: 0.85rem;
+    margin-top: 1rem;
+  }
+  
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* Footer */
+  .signup-footer {
+    margin-top: 1.8rem;
+    text-align: center;
+    font-size: 0.9rem;
+  }
+  
+  .signup-footer a {
+    color: #3b82f6;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  

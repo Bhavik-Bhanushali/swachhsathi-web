@@ -113,20 +113,7 @@ const LandingPage = () => {
   return (
     <div className="landing-page">
       {/* Navigation */}
-      <nav className="navbar">
-        <div className="container nav-content">
-          <div className="logo">
-            <img src={logo} alt="Swachhsathi" className="logo-image" />
-            <span className="logo-text">Swachhsathi</span>
-          </div>
-          <div className="nav-links">
-            <a href="#features">Features</a>
-            <a href="#how-it-works">How It Works</a>
-            <a href="#technology">Technology</a>
-            <a href="#contact">Contact</a>
-          </div>
-        </div>
-      </nav>
+      {/* Navigation - Moved to App.jsx */}
 
       {/* Hero Section */}
       <section className="hero">
