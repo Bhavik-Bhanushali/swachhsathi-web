@@ -18,7 +18,7 @@ const garbageCategories = [
 const SignUpPage = () => {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const navigate = useNavigate();
-  // const { signUp } = useAuth(); // If available
+  const { signUp } = useAuth();
 
   const toggleCategory = (category) => {
     setSelectedCategories((prev) =>
@@ -30,9 +30,18 @@ const SignUpPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Implement sign up logic here
-    console.log('Signing up with categories:', selectedCategories);
-    navigate('/dashboard');
+    const formData = new FormData(e.target);
+    const email = formData.get('email');
+    const password = formData.get('password');
+    // In a real app we'd save the extra data (username, ngoName, etc) to Firestore here
+
+    try {
+      await signUp({ email, password });
+      navigate('/dashboard');
+    } catch (error) {
+      console.error("Signup failed", error);
+      alert("Signup failed: " + error.message);
+    }
   };
 
   return (
@@ -51,25 +60,25 @@ const SignUpPage = () => {
             {/* Username */}
             <div className="form-group">
               <label>Username</label>
-              <input type="text" placeholder="Enter username" required />
+              <input type="text" name="username" placeholder="Enter username" required />
             </div>
 
             {/* Email */}
             <div className="form-group">
               <label>Email Address</label>
-              <input type="email" placeholder="ngo@example.com" required />
+              <input type="email" name="email" placeholder="ngo@example.com" required />
             </div>
 
             {/* Password */}
             <div className="form-group">
               <label>Password</label>
-              <input type="password" placeholder="••••••••" required />
+              <input type="password" name="password" placeholder="••••••••" required />
             </div>
 
             {/* NGO Name */}
             <div className="form-group">
               <label>NGO Name</label>
-              <input type="text" placeholder="Your NGO Name" required />
+              <input type="text" name="ngoName" placeholder="Your NGO Name" required />
             </div>
 
             {/* NGO Registration Number */}
@@ -77,6 +86,7 @@ const SignUpPage = () => {
               <label>NGO Registration Number</label>
               <input
                 type="text"
+                name="ngoRegNo"
                 placeholder="NGO Registration No."
                 required
               />

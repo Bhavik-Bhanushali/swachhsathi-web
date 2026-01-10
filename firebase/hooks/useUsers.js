@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserService } from '../services/UserService';
+import UserService from '../services/UserService';
 
 const USER_KEYS = {
     profile: (uid) => ['user', 'profile', uid],
+    workers: ['user', 'workers'],
 };
 
 export const useUser = () => {
@@ -18,15 +19,30 @@ export const useUser = () => {
         });
     };
 
+    // Hook to fetch all workers
+    const useGetWorkers = () => {
+        return useQuery({
+            queryKey: USER_KEYS.workers,
+            queryFn: () => UserService.getWorkers(),
+            staleTime: 1000 * 60 * 5, // 5 minutes
+        });
+    };
+
     // Mutation to create a new user
     const createUserMutation = useMutation({
-        mutationFn: (user) => UserService.createUser(user),
+        mutationFn: ({ uid, ...data }) => UserService.createUser(uid, data),
         onSuccess: (_, variables) => {
             // Update cache for this user
             queryClient.setQueryData(
                 USER_KEYS.profile(variables.uid),
                 variables
             );
+            // Invalidate workers list if the new user is a worker
+            if (variables.role === 'worker') {
+                queryClient.invalidateQueries({
+                    queryKey: USER_KEYS.workers,
+                });
+            }
         },
     });
 
@@ -39,11 +55,16 @@ export const useUser = () => {
             queryClient.invalidateQueries({
                 queryKey: USER_KEYS.profile(variables.uid),
             });
+            // Invalidate workers list indiscriminately or check logic
+            queryClient.invalidateQueries({
+                queryKey: USER_KEYS.workers,
+            });
         },
     });
 
     return {
         useGetUser,
+        useGetWorkers,
 
         createUser: createUserMutation.mutateAsync,
         isCreatingUser: createUserMutation.isPending,

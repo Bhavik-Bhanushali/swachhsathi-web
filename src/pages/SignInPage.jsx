@@ -15,15 +15,11 @@ const SignInPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Mock login for now if signIn is not ready, or use signIn
-      if (signIn) {
-        await signIn(email, password);
-      }
+      await signIn({ email, password });
       navigate('/dashboard');
     } catch (err) {
       console.error(err);
-      setError('Failed to sign in');
-      navigate('/dashboard'); // Proceed to dashboard for demo even on error if mock
+      setError('Failed to sign in: ' + err.message);
     }
   };
 
@@ -40,6 +36,8 @@ const SignInPage = () => {
           </p>
 
 
+
+          {error && <div className="error-message">{error}</div>}
 
           {/* Form */}
           <form className="signin-form" onSubmit={handleSubmit}>
