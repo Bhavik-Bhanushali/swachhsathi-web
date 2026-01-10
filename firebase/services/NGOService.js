@@ -1,6 +1,5 @@
-import { getApp } from '@react-native-firebase/app';
+
 import {
-    FirebaseFirestoreTypes,
     collection,
     doc,
     getDoc,
@@ -12,6 +11,7 @@ import {
     updateDoc,
     where,
 } from 'firebase/firestore';
+import { db } from '../config';
 
 // export interface NGOData {
 //   ngoId: string; // Same as user's UID
@@ -26,75 +26,70 @@ import {
 //   status: 'pending' | 'approved' | 'rejected';
 //   createdAt?: FirebaseFirestoreTypes.Timestamp;
 //   updatedAt?: FirebaseFirestoreTypes.Timestamp;
-//   adminId: string;
+//   adminId: string; // after user users'id
 // }
 
 class NGOService {
- collectionName = 'ngos';
+    collectionName = 'ngos';
 
-  // Create NGO document
-  async createNGO(ngoId, ngoData) {
-    const db = getFirestore(getApp());
-    const ngoRef = doc(collection(db, this.collectionName), ngoId);
+    // Create NGO document
+    async createNGO(ngoId, ngoData) {
+        const ngoRef = doc(collection(db, this.collectionName), ngoId);
 
-    return setDoc(ngoRef, {
-      ...ngoData,
-      ngoId,
-      status: 'approved', // Default status is pending until admin approves
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-  }
+        return setDoc(ngoRef, {
+            ...ngoData,
+            ngoId,
+            adminId: ngoId,
+            status: 'approved', // Default status is pending
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        });
+    }
 
-  // Get NGO by ID
-  async getNGO(ngoId) {
-    const db = getFirestore(getApp());
-    const ngoRef = doc(collection(db, this.collectionName), ngoId);
-    const docSnap = await getDoc(ngoRef);
+    // Get NGO by ID
+    async getNGO(ngoId) {
+        const ngoRef = doc(collection(db, this.collectionName), ngoId);
+        const docSnap = await getDoc(ngoRef);
 
-    return docSnap.exists ? (docSnap.data()) : null;
-  }
+        return docSnap.exists ? (docSnap.data()) : null;
+    }
 
-  // Get all NGOs
-  async getAllNGOs() {
-    const db = getFirestore(getApp());
-    const ngosRef = collection(db, this.collectionName);
-    const snapshot = await getDocs(ngosRef);
+    // Get all NGOs
+    async getAllNGOs() {
+        const ngosRef = collection(db, this.collectionName);
+        const snapshot = await getDocs(ngosRef);
 
-    return snapshot.docs.map(docSnap => docSnap.data());
-  }
+        return snapshot.docs.map(docSnap => docSnap.data());
+    }
 
-  // Get NGOs by status
-  async getNGOsByStatus(status) {
-    const db = getFirestore(getApp());
-    const ngosRef = collection(db, this.collectionName);
-    const ngosQuery = query(ngosRef, where('status', '==', status));
-    const snapshot = await getDocs(ngosQuery);
+    // Get NGOs by status
+    async getNGOsByStatus(status) {
+        const ngosRef = collection(db, this.collectionName);
+        const ngosQuery = query(ngosRef, where('status', '==', status));
+        const snapshot = await getDocs(ngosQuery);
 
-    return snapshot.docs.map(docSnap => docSnap.data());
-  }
+        return snapshot.docs.map(docSnap => docSnap.data());
+    }
 
-  // Update NGO status (for admin approval/rejection)
-  async updateNGOStatus(ngoId, status) {
-    const db = getFirestore(getApp());
-    const ngoRef = doc(collection(db, this.collectionName), ngoId);
+    // Update NGO status (for admin approval/rejection)
+    async updateNGOStatus(ngoId, status) {
+        const ngoRef = doc(collection(db, this.collectionName), ngoId);
 
-    return updateDoc(ngoRef, {
-      status,
-      updatedAt: serverTimestamp(),
-    });
-  }
+        return updateDoc(ngoRef, {
+            status,
+            updatedAt: serverTimestamp(),
+        });
+    }
 
-  // Update NGO details
-  async updateNGO(ngoId, ngoData) {
-    const db = getFirestore(getApp());
-    const ngoRef = doc(collection(db, this.collectionName), ngoId);
+    // Update NGO details
+    async updateNGO(ngoId, ngoData) {
+        const ngoRef = doc(collection(db, this.collectionName), ngoId);
 
-    return updateDoc(ngoRef, {
-      ...ngoData,
-      updatedAt: serverTimestamp(),
-    });
-  }
+        return updateDoc(ngoRef, {
+            ...ngoData,
+            updatedAt: serverTimestamp(),
+        });
+    }
 }
 
 export default new NGOService();

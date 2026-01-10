@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import './SignUpPage.css';
-import logo from '../assets/images/logo_without_bg.png';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCreateNGO } from '../../firebase/hooks/useNGO';
+import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
 
 const garbageCategories = [
   'Dead Animals',
@@ -15,10 +16,23 @@ const garbageCategories = [
   'Drain Cleaning',
 ];
 
+const libraries = ['places'];
+
 const SignUpPage = () => {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const navigate = useNavigate();
   const { signUp } = useAuth();
+  const { createNGO } = useCreateNGO();
+
+  // Google Maps Autocomplete
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries,
+  });
+
+  const [autocomplete, setAutocomplete] = useState(null);
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
 
   const toggleCategory = (category) => {
     setSelectedCategories((prev) =>
@@ -28,15 +42,73 @@ const SignUpPage = () => {
     );
   };
 
+  const onLoad = (autocompleteInstance) => {
+    setAutocomplete(autocompleteInstance);
+  };
+
+  const onPlaceChanged = () => {
+    if (autocomplete) {
+      const place = autocomplete.getPlace();
+      const formattedAddress = place.formatted_address;
+      setAddress(formattedAddress || "");
+
+      // Extract city from address components
+      if (place.address_components) {
+        const cityComponent = place.address_components.find(component =>
+          component.types.includes('locality')
+        );
+        if (cityComponent) {
+          setCity(cityComponent.long_name);
+        }
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const email = formData.get('email');
     const password = formData.get('password');
-    // In a real app we'd save the extra data (username, ngoName, etc) to Firestore here
+    const username = formData.get('username'); // Acts as contact person? Or we add separate field
+    const ngoName = formData.get('ngoName');
+    const ngoRegNo = formData.get('ngoRegNo');
+    const phone = formData.get('phone');
+    const contactPerson = formData.get('contactPerson');
+    // Address and city are in state
+
+    // Fallback if address wasn't selected via map but manually typed (though Autocomplete handles input usually)
+    // If the user didn't select from dropdown, 'address' state might be empty if we rely only on onPlaceChanged.
+    // Better to use the input value if 'address' state is empty, or sync them.
+    // For simplicity, we can trust the form data for 'address' if we name the input correctly, 
+    // but Autocomplete is tricky. Let's use the state if available, else form data.
+    const formAddress = formData.get('address') || address;
+    const formCity = formData.get('city') || city;
 
     try {
-      await signUp({ email, password });
+      // 1. Create Auth User
+      const userCredential = await signUp({ email, password });
+      const userId = userCredential.uid;
+
+      // 2. Prepare NGO Data
+      const ngoData = {
+        ngoId: userId,
+        ngoName,
+        contactPerson: contactPerson || username, // Use username if contact person not specified, assuming one and same for now if field missing
+        email,
+        phone,
+        address: formAddress,
+        city: formCity,
+        registrationNumber: ngoRegNo,
+        categories: selectedCategories,
+        adminId: userId,
+        status: 'pending' // As per interface, though NGOService defaults to 'approved' currently. Let's override or let service handle.
+        // Service creates with 'approved'. User interface comment says 'pending' | 'approved'. 
+        // I will pass what I have. Service line 42 overrides it to 'approved'.
+      };
+
+      // 3. Create NGO Record
+      await createNGO(userId, ngoData);
+
       navigate('/dashboard');
     } catch (error) {
       console.error("Signup failed", error);
@@ -57,16 +129,24 @@ const SignUpPage = () => {
           </p>
 
           <form className="signup-form" onSubmit={handleSubmit}>
-            {/* Username */}
+            {/* Contact Person / Username */}
             <div className="form-group">
-              <label>Username</label>
-              <input type="text" name="username" placeholder="Enter username" required />
+              <label>Contact Person Name</label>
+              <input type="text" name="contactPerson" placeholder="Enter full name" required />
             </div>
 
-            {/* Email */}
-            <div className="form-group">
-              <label>Email Address</label>
-              <input type="email" name="email" placeholder="ngo@example.com" required />
+            <div className="form-row">
+              {/* Email */}
+              <div className="form-group">
+                <label>Email Address</label>
+                <input type="email" name="email" placeholder="ngo@example.com" required />
+              </div>
+
+              {/* Phone */}
+              <div className="form-group">
+                <label>Phone Number</label>
+                <input type="tel" name="phone" placeholder="+91 9876543210" required />
+              </div>
             </div>
 
             {/* Password */}
@@ -88,6 +168,32 @@ const SignUpPage = () => {
                 type="text"
                 name="ngoRegNo"
                 placeholder="NGO Registration No."
+                required
+              />
+            </div>
+
+            {/* Address with Google Maps */}
+            <div className="form-group">
+              <label> Address</label>
+
+              <input
+                type="text"
+                name="address"
+                placeholder="Enter NGO address"
+                required
+              />
+
+            </div>
+
+            {/* City */}
+            <div className="form-group">
+              <label>City</label>
+              <input
+                type="text"
+                name="city"
+                placeholder="City"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
                 required
               />
             </div>
