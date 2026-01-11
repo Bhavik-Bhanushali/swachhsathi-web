@@ -31,13 +31,21 @@ export const useCreateNGO = () => {
 
 /**
  * Hook to fetch a single NGO by its ID.
+ * Returns data, isLoading, error, and refetch function.
  */
 export const useNGO = (ngoId) => {
-    return useQuery({
+    const query = useQuery({
         queryKey: NGO_KEYS.byId(ngoId),
         queryFn: () => NGOService.getNGO(ngoId),
         enabled: !!ngoId,
     });
+    
+    return {
+        data: query.data,
+        isLoading: query.isLoading,
+        error: query.error,
+        refetch: query.refetch,
+    };
 };
 
 /**

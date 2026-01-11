@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCreateNGO } from '../../firebase/hooks/useNGO';
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
-import { useUser} from '../../firebase/hooks/useUsers';
+import { useUser } from '../../firebase/hooks/useUsers';
 import { ArrowRight } from 'lucide-react';
 
 const garbageCategories = [
@@ -18,7 +18,7 @@ const garbageCategories = [
   'Drain Cleaning',
 ];
 
-const libraries = ['places'];
+const libraries = ['marker', 'places'];
 
 const SignUpPage = () => {
   const [selectedCategories, setSelectedCategories] = useState([]);
@@ -67,66 +67,85 @@ const SignUpPage = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const email = formData.get('email');
-    const password = formData.get('password');
-    const username = formData.get('username'); // Acts as contact person? Or we add separate field
-    const ngoName = formData.get('ngoName');
-    const ngoRegNo = formData.get('ngoRegNo');
-    const phone = formData.get('phone');
-    const contactPerson = formData.get('contactPerson');
-    // Address and city are in state
+  e.preventDefault();
 
-    // Fallback if address wasn't selected via map but manually typed (though Autocomplete handles input usually)
-    // If the user didn't select from dropdown, 'address' state might be empty if we rely only on onPlaceChanged.
-    // Better to use the input value if 'address' state is empty, or sync them.
-    // For simplicity, we can trust the form data for 'address' if we name the input correctly, 
-    // but Autocomplete is tricky. Let's use the state if available, else form data.
-    const formAddress = formData.get('address') || address;
-    const formCity = formData.get('city') || city;
+  if (selectedCategories.length === 0) {
+    alert("Please select at least one category");
+    return;
+  }
 
-    try {
-      // 1. Create Auth User
-      const userCredential = await signUp({ email, password });
-      const userId = userCredential.uid;
+  const formData = new FormData(e.target);
 
-      // 2. Create user document with role 'admin' for NGO
-      
-      await createUser(userId, {
-        uid: userId,
-        email,
-        name: contactPerson || username,
-        phone,
-        role: 'admin',
-      });
+  const email = formData.get('email');
+  const password = formData.get('password');
+  const ngoName = formData.get('ngoName');
+  const ngoRegNo = formData.get('ngoRegNo');
+  const phone = formData.get('phone');
+  const contactPerson = formData.get('contactPerson');
+  const addressInput = formData.get('address');
+  const cityInput = formData.get('city');
 
-      // 2. Prepare NGO Data
-      const ngoData = {
-        ngoId: userId,
-        ngoName,
-        contactPerson: contactPerson || username, // Use username if contact person not specified, assuming one and same for now if field missing
-        email,
-        phone,
-        address: formAddress,
-        city: formCity,
-        registrationNumber: ngoRegNo,
-        categories: selectedCategories,
-        adminId: userId,
-        status: 'approved' // As per interface, though NGOService defaults to 'approved' currently. Let's override or let service handle.
-        // Service creates with 'approved'. User interface comment says 'pending' | 'approved'. 
-        // I will pass what I have. Service line 42 overrides it to 'approved'.
-      };
+  console.log(formData);
+  console.log(email);
+  console.log(password);
+  console.log(ngoName);
+  console.log(ngoRegNo);
+  console.log(phone);
+  console.log(contactPerson);
+  console.log(addressInput);
+  console.log(cityInput);
+  console.log(selectedCategories);
+  
+  // return;
+  
 
-      // 3. Create NGO Record
-      await createNGO(userId, ngoData);
-
-      navigate('/dashboard');
-    } catch (error) {
-      console.error("Signup failed", error);
-      alert("Signup failed: " + error.message);
+  try {
+    // 1️⃣ Create Auth User
+    const authUser = await signUp({ email, password });
+    console.log("Auth user: ", authUser);
+    
+    if (!authUser || !authUser.uid) {
+      throw new Error("Failed to create user account");
     }
-  };
+    
+    const uid = authUser.uid;
+    console.log("User UID: ", uid);
+
+    // 2️⃣ Create NGO (Firestore with same ID as user)
+    const ngoPayload = {
+      name: ngoName,
+      registrationNumber: ngoRegNo,
+      contactPerson,
+      email,
+      phone,
+      address: addressInput,
+      city: cityInput,
+      categories: selectedCategories,
+      adminId: uid,
+      status: 'pending',
+    };
+
+    await createNGO({ ngoId: uid, ngoData: ngoPayload });
+    const ngoId = uid; // NGO ID is the same as user ID
+
+    // 3️⃣ Create User Doc
+    await createUser({
+      uid,
+      email,
+      name: contactPerson,
+      phone,
+      role: 'admin',
+      ngoId,
+      createdAt: new Date(),
+    });
+
+    navigate('/dashboard');
+  } catch (error) {
+    console.error("Signup failed:", error);
+    alert(error.message);
+  }
+};
+
 
   return (
     <div className="signup-page">

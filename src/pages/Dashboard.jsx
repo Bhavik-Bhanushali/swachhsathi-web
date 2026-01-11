@@ -33,8 +33,7 @@ const UnassignedReportsSection = ({
   ngoId,
   ngoCategories,
   ngoData,
-  refetchReports,
-  refetchWorkers,
+  refetchAllData,
 }) => {
   const [assigningReport, setAssigningReport] = useState(null);
   const [selectedWorker, setSelectedWorker] = useState("");
@@ -92,13 +91,13 @@ const UnassignedReportsSection = ({
       });
 
       // Refetch data to update the UI
-      await Promise.all([
-        refetchReports?.(),
-        refetchWorkers?.()
-      ]);
+      await refetchAllData();
 
       setAssigningReport(null);
       setSelectedWorker("");
+
+      // Refresh the page after successful assignment
+      // window.location.reload();
 
     } catch (error) {
       console.error("Error assigning worker:", error);
@@ -351,12 +350,26 @@ const Dashboard = () => {
   const { data: reports, isLoading: isLoadingReports, refetch: refetchReports } = useNgoReports(
     user?.uid
   );
-  const { data: ngoData, isLoading: isLoadingNgo } = useNGO(user?.uid);
+  const { data: ngoData, isLoading: isLoadingNgo, refetch: refetchNgo } = useNGO(user?.uid);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeNav, setActiveNav] = useState(() => {
     // Load the last active tab from localStorage, default to "dashboard"
     return localStorage.getItem("activeNav") || "dashboard";
   });
+
+  // Refetch all data function
+  const refetchAllData = async () => {
+    try {
+      await Promise.all([
+        refetchWorkers?.(),
+        refetchReports?.(),
+        refetchNgo?.()
+      ]);
+      console.log('All data refetched successfully');
+    } catch (error) {
+      console.error('Error refetching data:', error);
+    }
+  };
 
   // Navigation items
   const navItems = [
@@ -1090,8 +1103,7 @@ const Dashboard = () => {
                     ngoId={user?.uid}
                     ngoCategories={ngoData?.categories || []}
                     ngoData={ngoData}
-                    refetchReports={refetchReports}
-                    refetchWorkers={refetchWorkers}
+                    refetchAllData={refetchAllData}
                   />
                 </div>
               </div>

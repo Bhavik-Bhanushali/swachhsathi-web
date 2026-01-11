@@ -34,6 +34,7 @@ export const useWorkers = (ngoId) => {
     const [data, setData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     useEffect(() => {
         let unsubscribe;
@@ -71,9 +72,13 @@ export const useWorkers = (ngoId) => {
                 unsubscribe();
             }
         };
-    }, [ngoId]);
+    }, [ngoId, refreshTrigger]);
 
-    return { data, isLoading, error };
+    const refetch = () => {
+        setRefreshTrigger(prev => prev + 1);
+    };
+
+    return { data, isLoading, error, refetch };
 };
 
 // Hook to fetch a single worker by ID

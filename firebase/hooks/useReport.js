@@ -167,6 +167,7 @@ export const useNgoReports = (ngoId) => {
     const [data, setData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     useEffect(() => {
         const fetchNgoReports = async () => {
@@ -188,9 +189,13 @@ export const useNgoReports = (ngoId) => {
         };
 
         fetchNgoReports();
-    }, [ngoId]);
+    }, [ngoId, refreshTrigger]);
 
-    return { data, isLoading, error };
+    const refetch = () => {
+        setRefreshTrigger(prev => prev + 1);
+    };
+
+    return { data, isLoading, error, refetch };
 };
 
 // Hook to fetch assigned reports by NGO

@@ -48,10 +48,16 @@ class NGOService {
 
     // Get NGO by ID
     async getNGO(ngoId) {
+        if (!ngoId) {
+            return null;
+        }
         const ngoRef = doc(collection(db, this.collectionName), ngoId);
         const docSnap = await getDoc(ngoRef);
 
-        return docSnap.exists ? (docSnap.data()) : null;
+        if (docSnap.exists()) {
+            return docSnap.data();
+        }
+        return null;
     }
 
     // Get all NGOs

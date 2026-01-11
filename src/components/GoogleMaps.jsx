@@ -2,7 +2,7 @@ import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
 import { useEffect, useRef, useCallback } from "react";
 
 export default function Map({ latitude, longitude, address, markers = [] }) {
-  const libraries = ["marker"];
+  const libraries = ["marker", "places"];
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   
