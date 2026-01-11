@@ -44,14 +44,32 @@ export const AuthService = {
         }
     },
 
-    // Get current user (synchronous check, mostly for initial state if already loaded)
-    getCurrentUser: async () => {
-        const currentUser = auth.currentUser;
-        if (!currentUser) return null;
-        
-        // Fetch user document from Firestore to get additional fields like 'type'
-        const userDoc = await UserService.getUser(currentUser.uid);
-        return userDoc || currentUser;
+    // Get current user - waits for Firebase auth to initialize before resolving
+    getCurrentUser: () => {
+        return new Promise((resolve) => {
+            // If auth is already initialized and we have a user, resolve immediately
+            if (auth.currentUser) {
+                UserService.getUser(auth.currentUser.uid)
+                    .then((userDoc) => resolve(userDoc || auth.currentUser))
+                    .catch(() => resolve(auth.currentUser));
+                return;
+            }
+            
+            // Wait for auth state to be determined
+            const unsubscribe = onAuthStateChanged(auth, async (user) => {
+                unsubscribe(); // Unsubscribe after first call
+                if (user) {
+                    try {
+                        const userDoc = await UserService.getUser(user.uid);
+                        resolve(userDoc || user);
+                    } catch {
+                        resolve(user);
+                    }
+                } else {
+                    resolve(null);
+                }
+            });
+        });
     },
 
     // Auth state listener - wraps firebase observer

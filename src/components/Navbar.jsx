@@ -33,16 +33,15 @@ const Navbar = () => {
                     <span className="logo-text">Swachhsathi</span>
                 </Link>
                 <div className="nav-links">
-                    <Link to="/" className="nav-link">Home</Link>
                     {user ? (
                         <>
-                            <Link to="/dashboard" className="nav-link">Dashboard</Link>
                             <Link to="/" onClick={handleLogout} className="nav-link" style={{ cursor: 'pointer' }}>
                                 Log Out
                             </Link>
                         </>
                     ) : (
                         <>
+                            <Link to="/" className="nav-link">Home</Link>
                             <Link to="/signin" className="nav-link">Sign In</Link>
                             <Link to="/signup" className="nav-cta">
                                 Get Started

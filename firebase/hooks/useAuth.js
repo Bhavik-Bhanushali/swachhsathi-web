@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AuthService } from '../services/AuthService';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 // Keys for React Query
 const AUTH_KEYS = {
@@ -9,25 +9,51 @@ const AUTH_KEYS = {
 
 export const useAuth = () => {
     const queryClient = useQueryClient();
+    const [isInitialized, setIsInitialized] = useState(false);
 
     // Query to get the current user
     const {
         data: user,
-        isLoading,
+        isLoading: isQueryLoading,
         error,
+        isFetched,
     } = useQuery({
         queryKey: AUTH_KEYS.user,
-        queryFn: () => {
-            return AuthService.getCurrentUser();
+        queryFn: async () => {
+            const currentUser = await AuthService.getCurrentUser();
+            setIsInitialized(true);
+            return currentUser;
         },
         staleTime: Infinity,
         gcTime: Infinity,
+        retry: false,
     });
 
-    // Subscribe to auth state changes
+    // Combined loading state - true until we've fetched and initialized
+    const isLoading = isQueryLoading || !isInitialized;
+
+    // Subscribe to auth state changes (skip initial call since getCurrentUser handles it)
     useEffect(() => {
-        const unsubscribe = AuthService.onAuthChange((user) => {
-            queryClient.setQueryData(AUTH_KEYS.user, user);
+        let isFirstCall = true;
+        const unsubscribe = AuthService.onAuthChange(async (firebaseUser) => {
+            // Skip the first call as getCurrentUser already handles initialization
+            if (isFirstCall) {
+                isFirstCall = false;
+                return;
+            }
+            
+            if (firebaseUser) {
+                // Fetch full user data from Firestore
+                try {
+                    const { UserService } = await import('../services/UserService');
+                    const userDoc = await UserService.default.getUser(firebaseUser.uid);
+                    queryClient.setQueryData(AUTH_KEYS.user, userDoc || firebaseUser);
+                } catch {
+                    queryClient.setQueryData(AUTH_KEYS.user, firebaseUser);
+                }
+            } else {
+                queryClient.setQueryData(AUTH_KEYS.user, null);
+            }
         });
 
         return () => unsubscribe();

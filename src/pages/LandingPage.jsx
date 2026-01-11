@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import './LandingPage.css';
 import logo from '../assets/images/logo_without_bg.png';
+import { useNavigate } from 'react-router-dom';
 import { Camera, MapPin, TrendingUp, Bell, Map, Globe, ClipboardList, Navigation, CheckCircle, Users, BarChart3, Award, LayoutDashboard, FileText } from 'lucide-react';
 
 const LandingPage = () => {
   const [activeTab, setActiveTab] = useState('citizen');
+  const navigator = useNavigate();
 
   const features = {
     citizen: [
@@ -33,11 +35,11 @@ const LandingPage = () => {
         title: 'Nearby Reports',
         desc: 'View garbage hotspots in your area'
       },
-      {
-        icon: <Globe size={32} className="feature-icon" />,
-        title: 'Multi-Language Support',
-        desc: 'Accessibility for diverse users'
-      },
+    //   {
+    //     icon: <Globe size={32} className="feature-icon" />,
+    //     title: 'Multi-Language Support',
+    //     desc: 'Accessibility for diverse users'
+    //   },
     ],
     worker: [
       {
@@ -157,7 +159,7 @@ const LandingPage = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="stats-section">
+      {/* <section className="stats-section">
         <div className="container">
           <div className="stats-grid">
             {stats.map((stat, index) => (
@@ -168,7 +170,7 @@ const LandingPage = () => {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Problem Statement */}
       <section className="problem-section">
@@ -351,7 +353,7 @@ const LandingPage = () => {
               Join thousands of citizens making a difference in their communities
             </p>
             <div className="cta-buttons">
-              <button className="btn btn-primary btn-large">
+              <button className="btn btn-primary btn-large" onClick={()=> navigator('/signup')}>
                 <span>Get Started Now</span>
                 <span className="btn-icon">→</span>
               </button>

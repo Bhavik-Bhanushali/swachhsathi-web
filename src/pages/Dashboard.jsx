@@ -21,10 +21,12 @@ import {
   FileText,
   Zap,
   CheckCircle,
+  User,
 } from "lucide-react";
 import ReportService from "../../firebase/services/ReportService";
 import { useAuth as useAuthFirebase } from "../context/AuthContext";
 import { auth } from "../../firebase/config";
+import NGODetail from "../components/NGODetail";
 
 // Unassigned Reports Component
 const UnassignedReportsSection = ({
@@ -398,7 +400,7 @@ const Dashboard = () => {
       icon: <FileText size={20} />,
       route: "/reports-history",
     },
-    // { id: "settings", label: "Settings", icon: <Settings size={20} />, route: "/settings" },
+    { id: "profile", label: "Profile", icon: <User size={20} /> },
   ];
 
   // Calculate real-time stats from reports
@@ -1132,6 +1134,14 @@ const Dashboard = () => {
           {/* Main Dashboard Content */}
           <div className="dashboard-container">
             <ReportHistoryPage />
+          </div>
+        </>
+      )}
+      {activeNav == "profile" && (
+        <>
+          {/* Main Dashboard Content */}
+          <div className="dashboard-container">
+            <NGODetail ngo={ngoData} />
           </div>
         </>
       )}
