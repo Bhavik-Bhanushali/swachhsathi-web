@@ -1,87 +1,34 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useNgoReports } from "../../firebase/hooks/useReport";
 import "./AssignedTasks.css";
+import { MapPin, CheckCircle, ClipboardList, Zap, Package, AlertCircle, Loader } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const AssignedTasks = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("active");
   const [filterStatus, setFilterStatus] = useState("all");
+  const navigate = useNavigate();
+  // Fetch worker reports from Firebase
+  const { data: reports, isLoading, error } = useNgoReports(user?.uid);
 
-  // Mock data - In production, this should come from Firebase
-  const activeTasks = [
-    {
-      id: 1,
-      title: "Garbage Collection - Downtown Park",
-      location: "Downtown Park, Main Street",
-      assignedDate: "2026-01-11",
-      dueDate: "2026-01-12",
-      priority: "high",
-      status: "in-progress",
-      description: "Clear garbage accumulation near park entrance",
-      image: null,
-    },
-    {
-      id: 2,
-      title: "Street Cleaning - Market Area",
-      location: "Market Street, District 5",
-      assignedDate: "2026-01-10",
-      dueDate: "2026-01-13",
-      priority: "medium",
-      status: "pending",
-      description: "Clean entire market street area",
-      image: null,
-    },
-    {
-      id: 3,
-      title: "Drain Cleaning - Residential Zone",
-      location: "Green Valley Apartments",
-      assignedDate: "2026-01-09",
-      dueDate: "2026-01-11",
-      priority: "high",
-      status: "in-progress",
-      description: "Clear blocked drainage system",
-      image: null,
-    },
-  ];
+  useEffect(() => {
+    console.log("Fetched reports:", reports.length);
+  }, [reports]);
 
-  const completedTasks = [
-    {
-      id: 4,
-      title: "Park Maintenance - Eastern Zone",
-      location: "Eastern Park, Elm Street",
-      assignedDate: "2026-01-05",
-      completedDate: "2026-01-08",
-      priority: "medium",
-      status: "completed",
-      description: "Full park cleanup and maintenance",
-      image: null,
-      rating: 5,
-    },
-    {
-      id: 5,
-      title: "Waste Bin Replacement",
-      location: "Central Business District",
-      assignedDate: "2026-01-06",
-      completedDate: "2026-01-09",
-      priority: "low",
-      status: "completed",
-      description: "Replace old waste bins with new ones",
-      image: null,
-      rating: 4,
-    },
-    {
-      id: 6,
-      title: "Road Side Cleaning",
-      location: "Highway Junction",
-      assignedDate: "2026-01-04",
-      completedDate: "2026-01-07",
-      priority: "high",
-      status: "completed",
-      description: "Remove debris from roadsides",
-      image: null,
-      rating: 5,
-    },
-  ];
+  // Separate tasks into active and completed
+  const activeTasks = useMemo(() => {
+    if (!reports) return [];
+    return reports.filter(report => 
+      report.status === 'assigned' || report.status === 'in-progress' || report.status === 'pending'
+    );
+  }, [reports]);
+
+  const completedTasks = useMemo(() => {
+    if (!reports) return [];
+    return reports.filter(report => report.status === 'completed');
+  }, [reports]);
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -126,76 +73,85 @@ const AssignedTasks = () => {
   const handleViewDetails = (taskId) => {
     console.log("View task details:", taskId);
     // Navigate to task details page
+    navigate(`/report-details/${taskId}`);
+    
   };
 
-  const TaskCard = ({ task, isCompleted }) => (
-    <div
-      className="task-card"
-      onClick={() => handleTaskClick(task.id)}
-    >
-      <div className="task-header">
-        <div className="task-title-section">
-          <h3 className="task-title">{task.title}</h3>
-          <div className="task-meta">
-            <span
-              className="task-status"
-              style={{ backgroundColor: getStatusColor(task.status) }}
-            >
-              {getStatusLabel(task.status)}
-            </span>
-            <span
-              className="task-priority"
-              style={{ backgroundColor: getPriorityColor(task.priority) }}
-            >
-              {task.priority.toUpperCase()}
-            </span>
+  const TaskCard = ({ task, isCompleted }) => {
+    // Format date helper
+    const formatDate = (timestamp) => {
+      if (!timestamp) return 'N/A';
+      if (timestamp?.toDate) {
+        return timestamp.toDate().toLocaleDateString();
+      }
+      return new Date(timestamp).toLocaleDateString();
+    };
+
+    // Determine priority from status or set default
+    const priority = task.priority || 'medium';
+    
+    return (
+      <div
+        className="task-card"
+        onClick={() => handleTaskClick(task.id)}
+      >
+        <div className="task-header">
+          <div className="task-title-section">
+            <h3 className="task-title">{task.description || 'Cleanup Task'}</h3>
+            <div className="task-meta">
+              <span
+                className="task-status"
+                style={{ backgroundColor: getStatusColor(task.status) }}
+              >
+                {getStatusLabel(task.status)}
+              </span>
+              <span
+                className="task-priority"
+                style={{ backgroundColor: getPriorityColor(priority) }}
+              >
+                {priority.toUpperCase()}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="task-location">
-        <span className="location-icon">📍</span>
-        <span>{task.location}</span>
-      </div>
-
-      <p className="task-description">{task.description}</p>
-      <p className="task-description">Worker: add later</p>
-
-      <div className="task-dates">
-        <div className="date-item">
-          <span className="date-label">Assigned:</span>
-          <span className="date-value">{task.assignedDate}</span>
+        <div className="task-location">
+          <MapPin size={16} className="location-icon" />
+          <span>{task.location?.address || 'Location not specified'}</span>
         </div>
-        {!isCompleted && (
-          <div className="date-item">
-            <span className="date-label">Due:</span>
-            <span className="date-value">{task.dueDate}</span>
+
+        {task.imageUrl && (
+          <div className="task-image">
+            <img src={task.imageUrl} alt="Report" style={{ width: '100%', borderRadius: '8px', marginTop: '10px' }} />
           </div>
         )}
-        {isCompleted && (
-          <div className="date-item">
-            <span className="date-label">Completed:</span>
-            <span className="date-value">{task.completedDate}</span>
-          </div>
-        )}
-      </div>
 
-      {/* {!isCompleted && (
-        <div className="completion-bar">
-          <div className="completion-label">
-            <span>Progress</span>
-            <span className="completion-percentage">
-              {task.completionPercentage}%
-            </span>
+        <p className="task-description">Reported by: {task.userName || 'Unknown User'}</p>
+        {task.workerName && (
+          <p className="task-description">Worker: {task.workerName}</p>
+        )}
+
+        <div className="task-dates">
+          <div className="date-item">
+            <span className="date-label">Reported:</span>
+            <span className="date-value">{formatDate(task.createdAt)}</span>
           </div>
-          <div className="progress-bar">
-            <div
-              className="progress-fill"
-              style={{ width: `${task.completionPercentage}%` }}
-            ></div>
-          </div>
+          {!isCompleted && task.updatedAt && (
+            <div className="date-item">
+              <span className="date-label">Updated:</span>
+              <span className="date-value">{formatDate(task.updatedAt)}</span>
+            </div>
+          )}
+          {isCompleted && task.completedAt && (
+            <div className="date-item">
+              <span className="date-label">Completed:</span>
+              <span className="date-value">{formatDate(task.completedAt)}</span>
+            </div>
+          )}
         </div>
-      )} */}
+      {/* </div> */}
+
+      
 
       {isCompleted && task.rating && (
         <div className="task-rating">
@@ -222,7 +178,7 @@ const AssignedTasks = () => {
             >
               View Details
             </button>
-            <button
+            {/* <button
               className="btn btn-success"
               onClick={(e) => {
                 e.stopPropagation();
@@ -230,7 +186,7 @@ const AssignedTasks = () => {
               }}
             >
               Mark Complete
-            </button>
+            </button> */}
           </>
         ) : (
           <button
@@ -246,9 +202,35 @@ const AssignedTasks = () => {
       </div>
     </div>
   );
+};
 
   const activeTasksCount = activeTasks.length;
   const completedTasksCount = completedTasks.length;
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="assigned-tasks-container">
+        <div className="loading-state">
+          <Loader size={48} className="spinner" />
+          <p>Loading your tasks...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="assigned-tasks-container">
+        <div className="error-state">
+          <AlertCircle size={48} color="#ef4444" />
+          <h2>Error Loading Tasks</h2>
+          <p>{error.message || 'Something went wrong. Please try again later.'}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="assigned-tasks-container">
@@ -260,7 +242,7 @@ const AssignedTasks = () => {
       <div className="tasks-stats">
         <div className="stat-card">
           <div className="stat-icon" style={{ backgroundColor: "#3b82f6" }}>
-            📋
+            <ClipboardList size={24} color="white" />
           </div>
           <div className="stat-content">
             <p className="stat-value">{activeTasksCount}</p>
@@ -269,7 +251,7 @@ const AssignedTasks = () => {
         </div>
         <div className="stat-card">
           <div className="stat-icon" style={{ backgroundColor: "#10b981" }}>
-            ✓
+            <Zap size={24} color="white" />
           </div>
           <div className="stat-content">
             <p className="stat-value">{completedTasksCount}</p>
@@ -278,14 +260,15 @@ const AssignedTasks = () => {
         </div>
         <div className="stat-card">
           <div className="stat-icon" style={{ backgroundColor: "#f59e0b" }}>
-            🎯
+            <CheckCircle size={24} color="white" />
           </div>
           <div className="stat-content">
             <p className="stat-value">
-              {Math.round(
-                (completedTasksCount / (activeTasksCount + completedTasksCount)) *
-                  100
-              )}%
+              {activeTasksCount + completedTasksCount > 0
+                ? Math.round(
+                    (completedTasksCount / (activeTasksCount + completedTasksCount)) * 100
+                  )
+                : 0}%
             </p>
             <p className="stat-label">Completion Rate</p>
           </div>
@@ -297,7 +280,7 @@ const AssignedTasks = () => {
           className={`tab-button ${activeTab === "active" ? "active" : ""}`}
           onClick={() => setActiveTab("active")}
         >
-          <span className="tab-icon">📍</span>
+          <MapPin size={18} className="tab-icon" />
           Active Tasks
           <span className="tab-count">{activeTasksCount}</span>
         </button>
@@ -305,7 +288,7 @@ const AssignedTasks = () => {
           className={`tab-button ${activeTab === "completed" ? "active" : ""}`}
           onClick={() => setActiveTab("completed")}
         >
-          <span className="tab-icon">✅</span>
+          <CheckCircle size={18} className="tab-icon" />
           Completed Tasks
           <span className="tab-count">{completedTasksCount}</span>
         </button>

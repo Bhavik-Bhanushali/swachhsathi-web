@@ -4,6 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCreateNGO } from '../../firebase/hooks/useNGO';
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
+import { useUser} from '../../firebase/hooks/useUsers';
+import { ArrowRight } from 'lucide-react';
 
 const garbageCategories = [
   'Dead Animals',
@@ -23,7 +25,7 @@ const SignUpPage = () => {
   const navigate = useNavigate();
   const { signUp } = useAuth();
   const { createNGO } = useCreateNGO();
-
+  const {createUser} = useUser();
   // Google Maps Autocomplete
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
@@ -89,6 +91,16 @@ const SignUpPage = () => {
       const userCredential = await signUp({ email, password });
       const userId = userCredential.uid;
 
+      // 2. Create user document with role 'admin' for NGO
+      
+      await createUser(userId, {
+        uid: userId,
+        email,
+        name: contactPerson || username,
+        phone,
+        role: 'admin',
+      });
+
       // 2. Prepare NGO Data
       const ngoData = {
         ngoId: userId,
@@ -101,7 +113,7 @@ const SignUpPage = () => {
         registrationNumber: ngoRegNo,
         categories: selectedCategories,
         adminId: userId,
-        status: 'pending' // As per interface, though NGOService defaults to 'approved' currently. Let's override or let service handle.
+        status: 'approved' // As per interface, though NGOService defaults to 'approved' currently. Let's override or let service handle.
         // Service creates with 'approved'. User interface comment says 'pending' | 'approved'. 
         // I will pass what I have. Service line 42 overrides it to 'approved'.
       };
@@ -230,7 +242,7 @@ const SignUpPage = () => {
               disabled={selectedCategories.length === 0}
             >
               <span>Create Account</span>
-              <span className="btn-icon">→</span>
+              <ArrowRight size={18} className="btn-icon" />
             </button>
           </form>
 

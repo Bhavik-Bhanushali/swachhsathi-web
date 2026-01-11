@@ -1,160 +1,692 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useWorkers } from "../../firebase/hooks/useWorker";
+import {
+  useNgoReports,
+  useAssignedNgoReports,
+} from "../../firebase/hooks/useReport";
+import { useNGO } from "../../firebase/hooks/useNGO";
 import CreateWorkerForm from "../components/CreateWorkerForm";
 import Sidebar from "../components/Sidebar";
+import GoogleMaps from "../components/GoogleMaps";
 import "./Dashboard.css";
 import WorkerListPage from "./WorkerListPage";
 import AssignedTasks from "./AssignedTasks";
+import ReportHistoryPage from ".//ReportHistoryPage";
+import {
+  LayoutDashboard,
+  ClipboardList,
+  Users,
+  FileText,
+  Zap,
+  CheckCircle,
+} from "lucide-react";
+import ReportService from "../../firebase/services/ReportService";
+import { useAuth as useAuthFirebase } from "../context/AuthContext";
+import { auth } from "../../firebase/config";
+
+// Unassigned Reports Component
+const UnassignedReportsSection = ({
+  reports,
+  workers,
+  ngoId,
+  ngoCategories,
+  ngoData,
+  refetchReports,
+  refetchWorkers,
+}) => {
+  const [assigningReport, setAssigningReport] = useState(null);
+  const [selectedWorker, setSelectedWorker] = useState("");
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  const unassignedReports = useMemo(() => {
+    if (!reports) return [];
+
+    // Filter by status first
+    const statusFiltered = reports.filter(
+      (r) => r.status === "pending" || r.status === "unassigned" || !r.status
+    );
+
+    // If no NGO categories defined, show all unassigned reports
+    if (!ngoCategories || ngoCategories.length === 0) {
+      return statusFiltered;
+    }
+
+    // Filter by NGO categories
+    return statusFiltered.filter((report) => {
+      // If report has no category, exclude it
+      if (!report.category) return false;
+
+      // Check if report category matches any of the NGO's categories
+      return ngoCategories.includes(report.category);
+    });
+  }, [reports, ngoCategories]);
+
+  const handleAssignClick = (report) => {
+    setAssigningReport(report);
+    setSelectedWorker("");
+  };
+
+  const handleCancelAssign = () => {
+    setAssigningReport(null);
+    setSelectedWorker("");
+  };
+
+  const handleAssignWorker = async () => {
+    if (!selectedWorker || !assigningReport) return;
+    console.log(assigningReport);
+    console.log(selectedWorker);
+    console.log(ngoData);
+    
+    
+    // return;
+
+    setIsAssigning(true);
+    try {
+      const worker = workers.find((w) => w.id === selectedWorker);
+      await ReportService.updateReport(assigningReport.id, {
+        assignedTo: selectedWorker,
+        status: "assigned",
+        ngoId: ngoData?.adminId, // Update the ngoId
+      });
+
+      // Refetch data to update the UI
+      await Promise.all([
+        refetchReports?.(),
+        refetchWorkers?.()
+      ]);
+
+      setAssigningReport(null);
+      setSelectedWorker("");
+
+    } catch (error) {
+      console.error("Error assigning worker:", error);
+      alert("Failed to assign worker. Please try again.");
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  return (
+    <div className="dashboard-card">
+      <div className="card-header">
+        <h2 className="card-title">Unassigned Reports</h2>
+        <p className="card-subtitle">
+          {unassignedReports.length} report
+          {unassignedReports.length !== 1 ? "s" : ""} waiting for assignment
+        </p>
+      </div>
+      <div
+        className="unassigned-reports-container"
+        style={{
+          maxHeight: "500px",
+          overflowY: "auto",
+          padding: "1rem",
+        }}
+      >
+        {unassignedReports.length === 0 ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "3rem",
+              color: "#64748b",
+            }}
+          >
+            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>✅</div>
+            <p>No unassigned reports</p>
+          </div>
+        ) : (
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+          >
+            {unassignedReports.map((report) => (
+              <div
+                key={report.id}
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  padding: "1rem",
+                  backgroundColor: "#fff",
+                  transition: "box-shadow 0.2s",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.boxShadow =
+                    "0 4px 6px -1px rgba(0, 0, 0, 0.1)")
+                }
+                onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        fontWeight: "600",
+                        color: "#1e293b",
+                        marginBottom: "0.25rem",
+                      }}
+                    >
+                      Report ID: {report.id}
+                    </div>
+                    <div
+                      style={{
+                        color: "#64748b",
+                        fontSize: "0.9rem",
+                        marginBottom: "0.25rem",
+                      }}
+                    >
+                      📍{" "}
+                      {report.location?.address ||
+                        report.address ||
+                        "Unknown Location"}
+                    </div>
+                    {report.category && (
+                      <div
+                        style={{
+                          color: "#64748b",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        Category: {report.category}
+                      </div>
+                    )}
+                    {report.priority && (
+                      <span
+                        style={{
+                          display: "inline-block",
+                          marginTop: "0.5rem",
+                          padding: "0.25rem 0.75rem",
+                          borderRadius: "12px",
+                          fontSize: "0.8rem",
+                          fontWeight: "500",
+                          backgroundColor:
+                            report.priority === "High"
+                              ? "#fee2e2"
+                              : report.priority === "Medium"
+                              ? "#fef3c7"
+                              : "#dbeafe",
+                          color:
+                            report.priority === "High"
+                              ? "#991b1b"
+                              : report.priority === "Medium"
+                              ? "#92400e"
+                              : "#1e40af",
+                        }}
+                      >
+                        {report.priority} Priority
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleAssignClick(report)}
+                    style={{
+                      padding: "0.5rem 1rem",
+                      backgroundColor: "#0ea5e9",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      fontWeight: "500",
+                      fontSize: "0.9rem",
+                      transition: "background-color 0.2s",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.target.style.backgroundColor = "#0284c7")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.target.style.backgroundColor = "#0ea5e9")
+                    }
+                  >
+                    Assign
+                  </button>
+                </div>
+
+                {/* Assignment Modal */}
+                {assigningReport?.id === report.id && (
+                  <div
+                    style={{
+                      marginTop: "1rem",
+                      padding: "1rem",
+                      backgroundColor: "#f8fafc",
+                      borderRadius: "6px",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontWeight: "600",
+                        marginBottom: "0.75rem",
+                        color: "#1e293b",
+                      }}
+                    >
+                      Select Worker to Assign
+                    </div>
+                    <select
+                      value={selectedWorker}
+                      onChange={(e) => setSelectedWorker(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.625rem",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: "6px",
+                        marginBottom: "0.75rem",
+                        fontSize: "0.9rem",
+                        backgroundColor: "white",
+                      }}
+                      disabled={isAssigning}
+                    >
+                      <option value="">-- Select a worker --</option>
+                      {workers &&
+                        workers.map((worker) => (
+                          <option key={worker.id} value={worker.id}>
+                            {worker.name}{" "}
+                            {worker.isActive ? "(Active)" : "(Offline)"}
+                          </option>
+                        ))}
+                    </select>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <button
+                        onClick={handleAssignWorker}
+                        disabled={!selectedWorker || isAssigning}
+                        style={{
+                          flex: 1,
+                          padding: "0.625rem",
+                          backgroundColor:
+                            selectedWorker && !isAssigning
+                              ? "#10b981"
+                              : "#94a3b8",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "6px",
+                          cursor:
+                            selectedWorker && !isAssigning
+                              ? "pointer"
+                              : "not-allowed",
+                          fontWeight: "500",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        {isAssigning ? "Assigning..." : "Confirm Assignment"}
+                      </button>
+                      <button
+                        onClick={handleCancelAssign}
+                        disabled={isAssigning}
+                        style={{
+                          flex: 1,
+                          padding: "0.625rem",
+                          backgroundColor: "white",
+                          color: "#64748b",
+                          border: "1px solid #cbd5e1",
+                          borderRadius: "6px",
+                          cursor: isAssigning ? "not-allowed" : "pointer",
+                          fontWeight: "500",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const Dashboard = () => {
   const { user, signOut, isLoading: isAuthLoading } = useAuth();
   const navigate = useNavigate();
-  const { data: workers, isLoading: isLoadingWorkers } = useWorkers(user?.uid);
+  const { data: workers, isLoading: isLoadingWorkers, refetch: refetchWorkers } = useWorkers(user?.uid);
+  const { data: reports, isLoading: isLoadingReports, refetch: refetchReports } = useNgoReports(
+    user?.uid
+  );
+  const { data: ngoData, isLoading: isLoadingNgo } = useNGO(user?.uid);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeNav, setActiveNav] = useState(() => {
+    // Load the last active tab from localStorage, default to "dashboard"
+    return localStorage.getItem("activeNav") || "dashboard";
+  });
 
   // Navigation items
   const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: "📊", route: "/dashboard" },
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      icon: <LayoutDashboard size={20} />,
+      route: "/dashboard",
+    },
     {
       id: "assigned-tasks",
       label: "Assigned Tasks",
-      icon: "📋",
+      icon: <ClipboardList size={20} />,
       route: "/assigned-tasks",
     },
-    { id: "workers", label: "Workers", icon: "👥", route: "/workers" },
-    { id: "analytics", label: "Analytics", icon: "📈", route: "/analytics" },
+    {
+      id: "workers",
+      label: "Workers",
+      icon: <Users size={20} />,
+      route: "/workers",
+    },
+    // { id: "analytics", label: "Analytics", icon: <TrendingUp size={20} />, route: "/analytics" },
     {
       id: "reports-history",
       label: "Reports History",
-      icon: "📄",
+      icon: <FileText size={20} />,
       route: "/reports-history",
     },
-    { id: "settings", label: "Settings", icon: "⚙️", route: "/settings" },
+    // { id: "settings", label: "Settings", icon: <Settings size={20} />, route: "/settings" },
   ];
 
-  // Mock data for the dashboard
-  const stats = [
-    {
-      title: "Total Tasks Assigned",
-      value: "127",
-      icon: "📋",
-      color: "#3b82f6",
-    },
-    {
-      title: "Tasks In Progress",
-      value: "34",
-      icon: "⚡",
-      color: "#f59e0b",
-    },
-    {
-      title: "Tasks Completed",
-      value: "89",
-      icon: "✓",
-      color: "#10b981",
-    },
-    {
-      title: "Active Workers",
-      value: workers?.length || "12",
-      icon: "👥",
-      color: "#8b5cf6",
-    },
-  ];
+  // Calculate real-time stats from reports
+  const stats = useMemo(() => {
+    if (!reports) {
+      return [
+        {
+          title: "Total Tasks Assigned",
+          value: "0",
+          icon: <ClipboardList size={32} />,
+          color: "#3b82f6",
+        },
+        {
+          title: "Tasks In Progress",
+          value: "0",
+          icon: <Zap size={32} />,
+          color: "#f59e0b",
+        },
+        {
+          title: "Tasks Completed",
+          value: "0",
+          icon: <CheckCircle size={32} />,
+          color: "#10b981",
+        },
+        {
+          title: "Total Workers",
+          value: workers.length.toString() || "0",
+          icon: <Users size={32} />,
+          color: "#8b5cf6",
+        },
+      ];
+    }
 
-  const nearbyRequests = [
-    {
-      id: 1,
-      location: "MG Road Junction",
-      distance: "1.2 km away",
-      priority: "High",
-      image: "🗑️",
-    },
-    {
-      id: 2,
-      location: "Park Street Corner",
-      distance: "2.4 km away",
-      priority: "Medium",
-      image: "🗑️",
-    },
-    {
-      id: 3,
-      location: "Bus Stand Area",
-      distance: "0.8 km away",
-      priority: "Low",
-      image: "🗑️",
-    },
-    {
-      id: 4,
-      location: "Market Complex",
-      distance: "3.1 km away",
-      priority: "Medium",
-      image: "🗑️",
-    },
-  ];
+    const totalAssigned = reports.filter(
+      (r) =>
+        r.status === "assigned" ||
+        r.status === "in-progress" ||
+        r.status === "completed"
+    ).length;
+    const inProgress = reports.filter((r) => r.status === "in-progress").length;
+    const completed = reports.filter((r) => r.status === "completed").length;
 
-  const activeTasks = [
-    {
-      id: "RGR-2847",
-      location: "Gandhi Nagar Sector 4",
-      worker: { name: "Rajesh Kumar", avatar: "👨" },
-      status: "In Progress",
-      timeRemaining: "40 mins",
-    },
-    {
-      id: "DS-2845",
-      location: "Laxmi Nagar Main Road",
-      worker: { name: "Amit Singh", avatar: "👨" },
-      status: "In Progress",
-      timeRemaining: "1 hr 20 mins",
-    },
-    {
-      id: "RGR-2841",
-      location: "Katwaria Station Area",
-      worker: { name: "Priya Sharma", avatar: "👩" },
-      status: "Assigned",
-      timeRemaining: "2 hrs",
-    },
-    {
-      id: "DS-2838",
-      location: "City Centre Mall",
-      worker: { name: "Vikram Patel", avatar: "👨" },
-      status: "In Progress",
-      timeRemaining: "30 mins",
-    },
-  ];
+    return [
+      {
+        title: "Total Tasks Assigned",
+        value: totalAssigned.toString(),
+        icon: <ClipboardList size={32} />,
+        color: "#3b82f6",
+      },
+      {
+        title: "Tasks In Progress",
+        value: inProgress.toString(),
+        icon: <Zap size={32} />,
+        color: "#f59e0b",
+      },
+      {
+        title: "Tasks Completed",
+        value: completed.toString(),
+        icon: <CheckCircle size={32} />,
+        color: "#10b981",
+      },
+      {
+        title: "Active Workers",
+        value: workers?.length || "0",
+        icon: <Users size={32} />,
+        color: "#8b5cf6",
+      },
+    ];
+  }, [reports, workers]);
 
-  const activeWorkersList = [
-    { name: "Rajesh Kumar", lastActive: "2 mins ago", status: "Online" },
-    { name: "Amit Singh", lastActive: "1 task active", status: "Online" },
-    { name: "Priya Sharma", lastActive: "1 task active", status: "Online" },
-    { name: "Vikram Patel", lastActive: "1 task active", status: "Online" },
-    { name: "Sunesh Yadav", lastActive: "5 hours", status: "Offline" },
-  ];
+  // Get nearby/unassigned requests
+  const nearbyRequests = useMemo(() => {
+    if (!reports) return [];
 
-  const tasksPerDay = [
-    { day: "Mon", count: 8 },
-    { day: "Tue", count: 12 },
-    { day: "Wed", count: 13 },
-    { day: "Thu", count: 11 },
-    { day: "Fri", count: 12 },
-    { day: "Sat", count: 9 },
-    { day: "Sun", count: 11 },
-  ];
+    return reports
+      .filter((r) => r.status === "pending" || r.status === "unassigned")
+      .map((report) => ({
+        id: report.id,
+        location:
+          report.location?.address || report.address || "Unknown Location",
+        distance: "N/A",
+        priority: report.priority || "Medium",
+        image: "🗑️",
+      }));
+  }, [reports]);
 
-  const taskCategories = [
-    { name: "Street Cleaning", percentage: 35, color: "#3b82f6" },
-    { name: "Waste Collection", percentage: 28, color: "#10b981" },
-    { name: "Drain Cleaning", percentage: 25, color: "#f59e0b" },
-    { name: "Illegal Dumping", percentage: 12, color: "#ef4444" },
-  ];
+  // Prepare markers data for Google Maps
+  const mapMarkers = useMemo(() => {
+    if (!reports) return [];
 
-  useEffect(() => {
-    console.log(workers);
+    return reports
+      .filter((r) => r.location?.latitude && r.location?.longitude)
+      .map((report) => ({
+        lat: report.location.latitude,
+        lng: report.location.longitude,
+        title: report.location?.address || report.address || "Garbage Report",
+        address: report.location?.address || report.address,
+        status: report.status,
+        priority: report.priority,
+        id: report.id,
+      }));
+  }, [reports]);
+
+  // Get active tasks (assigned or in-progress)
+  const activeTasks = useMemo(() => {
+    if (!reports) return [];
+
+    return reports
+      .filter(
+        (r) =>
+          r.status === "assigned" ||
+          r.status === "in-progress"
+      )
+      .map((report) => ({
+        id: report.id,
+        location:
+          report.location?.address || report.address || "Unknown Location",
+        worker: {
+          name: report.workerName || "Unassigned",
+          avatar: "👨",
+        },
+        status: report.status === "in-progress" ? "In Progress" : "Assigned",
+        timeRemaining: "N/A",
+      }));
+  }, [reports]);
+
+  // Get active workers list
+  const activeWorkersList = useMemo(() => {
+    if (!workers) return [];
+
+    return workers.map((worker) => ({
+      id: worker.id,
+      name: worker.name,
+      lastActive: worker.isActive ? "Active" : "Offline",
+      status: worker.isActive ? "Online" : "Offline",
+    }));
   }, [workers]);
 
-  if (isAuthLoading || isLoadingWorkers) {
+  // Calculate tasks per day for the last 7 days
+  const tasksPerDay = useMemo(() => {
+    if (!reports) {
+      return [
+        { day: "Mon", count: 0 },
+        { day: "Tue", count: 0 },
+        { day: "Wed", count: 0 },
+        { day: "Thu", count: 0 },
+        { day: "Fri", count: 0 },
+        { day: "Sat", count: 0 },
+        { day: "Sun", count: 0 },
+      ];
+    }
+
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const today = new Date();
+    const last7Days = [];
+
+    // Create array of last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      last7Days.push({
+        day: days[date.getDay()],
+        date: date.toDateString(),
+        count: 0,
+      });
+    }
+
+    // Count completed tasks per day
+    reports
+      .filter((r) => r.status === "completed" && r.updatedAt)
+      .forEach((report) => {
+        const reportDate = report.updatedAt.toDate
+          ? report.updatedAt.toDate()
+          : new Date(report.updatedAt);
+        const dateStr = reportDate.toDateString();
+        const dayEntry = last7Days.find((d) => d.date === dateStr);
+        if (dayEntry) {
+          dayEntry.count++;
+        }
+      });
+
+    return last7Days;
+  }, [reports]);
+
+  // Calculate task categories
+  const taskCategories = useMemo(() => {
+    if (!reports || reports.length === 0) {
+      return [{ name: "No Data", count: 0, percentage: 100, color: "#94a3b8" }];
+    }
+
+    // Group by category/type
+    const categoryCounts = {};
+    reports.forEach((report) => {
+      const category = report.category || report.type || "Other";
+      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+    });
+
+    const total = reports.length;
+    const categories = Object.entries(categoryCounts).map(
+      ([name, count], idx) => ({
+        name,
+        count,
+        percentage: ((count / total) * 100).toFixed(1),
+        color: [
+          "#3b82f6",
+          "#10b981",
+          "#f59e0b",
+          "#ef4444",
+          "#8b5cf6",
+          "#ec4899",
+          "#06b6d4",
+          "#f97316",
+        ][idx % 8],
+      })
+    );
+
+    return categories.length > 0
+      ? categories
+      : [{ name: "No Data", count: 0, percentage: 100, color: "#94a3b8" }];
+  }, [reports]);
+
+  // Calculate KPIs from real data
+  const kpiMetrics = useMemo(() => {
+    if (!reports || reports.length === 0) {
+      return {
+        avgResolutionTime: "N/A",
+        successRate: "0%",
+        workerEfficiency: "N/A",
+      };
+    }
+
+    // Calculate Average Resolution Time
+    const completedReports = reports.filter(
+      (r) => r.status === "completed" && r.createdAt && r.updatedAt
+    );
+    let avgResolutionHours = 0;
+
+    if (completedReports.length > 0) {
+      const totalHours = completedReports.reduce((sum, report) => {
+        const created = report.createdAt.toDate
+          ? report.createdAt.toDate()
+          : new Date(report.createdAt);
+        const updated = report.updatedAt.toDate
+          ? report.updatedAt.toDate()
+          : new Date(report.updatedAt);
+        const diffHours = (updated - created) / (1000 * 60 * 60);
+        return sum + diffHours;
+      }, 0);
+      avgResolutionHours = totalHours / completedReports.length;
+    }
+
+    // Calculate Success Rate
+    const assignedReports = reports.filter(
+      (r) =>
+        r.status === "assigned" ||
+        r.status === "in-progress" ||
+        r.status === "completed"
+    );
+    const successRate =
+      assignedReports.length > 0
+        ? Math.round((completedReports.length / assignedReports.length) * 100)
+        : 0;
+
+    // Calculate Worker Efficiency (avg completed tasks per worker)
+    const activeWorkersCount = workers?.length || 1;
+    const efficiency = completedReports.length / activeWorkersCount;
+
+    return {
+      avgResolutionTime:
+        completedReports.length > 0
+          ? avgResolutionHours < 1
+            ? `${Math.round(avgResolutionHours * 60)} min`
+            : `${avgResolutionHours.toFixed(1)} hrs`
+          : "N/A",
+      successRate: `${successRate}%`,
+      workerEfficiency:
+        efficiency > 0 ? `${efficiency.toFixed(1)}/worker` : "N/A",
+    };
+  }, [reports, workers]);
+
+  useEffect(() => {
+    console.log("Workers:", workers);
+    console.log("Reports:", reports);
+    console.log(
+      "Assigned Reports:",
+      reports.filter(
+        (r) =>
+          r.status === "assigned" ||
+          r.status === "in-progress" ||
+          r.status === "pending"
+      )
+    );
+    console.log("Map Markers:", mapMarkers);
+  }, [workers, reports, mapMarkers]);
+
+  // Persist active tab to localStorage
+  useEffect(() => {
+    localStorage.setItem("activeNav", activeNav);
+  }, [activeNav]);
+
+  if (isAuthLoading || isLoadingWorkers || isLoadingReports) {
     return (
       <div
         className="dashboard-container"
@@ -171,6 +703,8 @@ const Dashboard = () => {
         <p style={{ color: "#64748b", fontSize: "1.1rem" }}>
           {isAuthLoading
             ? "Verifying authentication..."
+            : isLoadingReports || isLoadingAssignedReports
+            ? "Loading reports data..."
             : "Loading your dashboard..."}
         </p>
         <style>{`
@@ -210,6 +744,9 @@ const Dashboard = () => {
       </div>
     );
   }
+  const handleTaskClick = (taskId) => {
+    navigate(`/report-details/${taskId}`);
+  };
 
   const maxTaskCount = Math.max(...tasksPerDay.map((d) => d.count));
 
@@ -226,7 +763,10 @@ const Dashboard = () => {
       {activeNav == "dashboard" && (
         <>
           {/* Main Dashboard Content */}
-          <div className="dashboard-container">
+          <div
+            className="dashboard-container"
+            style={{ display: "flex", flexDirection: "column", gap: "2rem" }}
+          >
             {/* Stats Cards */}
             <div className="stats-grid">
               {stats.map((stat, index) => (
@@ -237,9 +777,12 @@ const Dashboard = () => {
                 >
                   <div
                     className="stat-icon"
-                    style={{ backgroundColor: `${stat.color}15` }}
+                    style={{
+                      backgroundColor: `${stat.color}20`,
+                      color: stat.color,
+                    }}
                   >
-                    <span style={{ fontSize: "2rem" }}>{stat.icon}</span>
+                    {stat.icon}
                   </div>
                   <div className="stat-content">
                     <div className="stat-value">{stat.value}</div>
@@ -250,60 +793,35 @@ const Dashboard = () => {
             </div>
 
             {/* Main Content Grid */}
-            <div className="main-grid">
-              {/* Left Column */}
-              <div className="left-column">
+            <div className="main-grid" style={{ gridTemplateColumns: "1fr" }}>
+              {/* Main Column */}
+              <div
+                className="main-column"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "2rem",
+                }}
+              >
                 {/* Map Section */}
                 <div className="dashboard-card map-card">
                   <div className="card-header">
                     <h2 className="card-title">Nearby Garbage Reports</h2>
                     <p className="card-subtitle">
-                      Active tasks within service radius
+                      {mapMarkers.length} active report
+                      {mapMarkers.length !== 1 ? "s" : ""} on map
                     </p>
                   </div>
-                  <div className="map-container">
-                    <div className="map-placeholder">
-                      <div className="map-legend">
-                        <span className="legend-item high">
-                          ● High Priority
-                        </span>
-                        <span className="legend-item medium">● Medium</span>
-                        <span className="legend-item low">● Low</span>
-                      </div>
-                      <div className="map-markers">
-                        <div
-                          className="marker marker-high"
-                          style={{ top: "30%", left: "45%" }}
-                        >
-                          📍
-                        </div>
-                        <div
-                          className="marker marker-medium"
-                          style={{ top: "50%", left: "60%" }}
-                        >
-                          📍
-                        </div>
-                        <div
-                          className="marker marker-low"
-                          style={{ top: "65%", left: "35%" }}
-                        >
-                          📍
-                        </div>
-                        <div
-                          className="marker marker-medium"
-                          style={{ top: "40%", left: "70%" }}
-                        >
-                          📍
-                        </div>
-                        <div
-                          className="marker marker-low"
-                          style={{ top: "75%", left: "55%" }}
-                        >
-                          📍
+                  <div className="map-container" style={{ height: "400px" }}>
+                    {mapMarkers.length > 0 ? (
+                      <GoogleMaps markers={mapMarkers} />
+                    ) : (
+                      <div className="map-placeholder">
+                        <div className="map-overlay">
+                          No reports with location data available
                         </div>
                       </div>
-                      <div className="map-overlay">🗺️ Interactive Map View</div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
@@ -314,7 +832,7 @@ const Dashboard = () => {
                     <p className="card-subtitle">
                       Currently assigned and in progress
                     </p>
-                    <button className="filter-btn">📋 Filter</button>
+                    {/* <button className="filter-btn">📋 Filter</button> */}
                   </div>
                   <div className="table-container">
                     <table className="tasks-table">
@@ -329,43 +847,71 @@ const Dashboard = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {activeTasks.map((task) => (
-                          <tr key={task.id}>
-                            <td className="task-id">{task.id}</td>
-                            <td>{task.location}</td>
-                            <td>
-                              <div className="worker-cell">
-                                <span className="worker-avatar">
-                                  {task.worker.avatar}
-                                </span>
-                                <span>{task.worker.name}</span>
-                              </div>
-                            </td>
-                            <td>
-                              <span
-                                className={`status-badge ${task.status
-                                  .toLowerCase()
-                                  .replace(" ", "-")}`}
-                              >
-                                {task.status}
-                              </span>
-                            </td>
-                            <td>{task.timeRemaining}</td>
-                            <td>
-                              <button className="action-btn view">View</button>
-                              <button className="action-btn update">
-                                Update
-                              </button>
+                        {activeTasks.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan="6"
+                              style={{
+                                textAlign: "center",
+                                padding: "2rem",
+                                color: "#64748b",
+                              }}
+                            >
+                              No active tasks found in Database
                             </td>
                           </tr>
-                        ))}
+                        ) : (
+                          activeTasks.map((task) => (
+                            <tr
+                              key={task.id}
+                              onClick={handleTaskClick.bind(null, task.id)}
+                              style={{ cursor: "pointer" }}
+                            >
+                              <td className="task-id">{task.id}</td>
+                              <td>{task.location}</td>
+                              <td>
+                                <div className="worker-cell">
+                                  <span className="worker-avatar">
+                                    {task.worker.avatar}
+                                  </span>
+                                  <span>{task.worker.name}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <span
+                                  className={`status-badge ${task.status
+                                    .toLowerCase()
+                                    .replace(" ", "-")}`}
+                                >
+                                  {task.status}
+                                </span>
+                              </td>
+                              <td>{task.timeRemaining}</td>
+                              <td>
+                                <button className="action-btn view">
+                                  View
+                                </button>
+                                <button className="action-btn update">
+                                  Update
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
                       </tbody>
                     </table>
                   </div>
                 </div>
 
                 {/* Bottom Row - Charts */}
-                <div className="charts-row">
+                <div
+                  className="charts-row"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
+                    gap: "1.5rem",
+                  }}
+                >
                   {/* Active Workers */}
                   <div className="dashboard-card">
                     <div className="card-header">
@@ -373,24 +919,41 @@ const Dashboard = () => {
                       <p className="card-subtitle">Currently available team</p>
                     </div>
                     <div className="workers-list">
-                      {activeWorkersList.map((worker, idx) => (
-                        <div key={idx} className="worker-item">
-                          <div className="worker-info">
-                            <div className="worker-avatar-circle">
-                              {worker.name.charAt(0)}
-                            </div>
-                            <div>
-                              <div className="worker-name">{worker.name}</div>
-                              <div className="worker-status-text">
-                                {worker.lastActive}
+                      {activeWorkersList.length === 0 ? (
+                        <div
+                          style={{
+                            textAlign: "center",
+                            padding: "2rem",
+                            color: "#64748b",
+                          }}
+                        >
+                          No workers found in Firebase
+                        </div>
+                      ) : (
+                        activeWorkersList.map((worker, idx) => (
+                          <div
+                            key={idx}
+                            className="worker-item"
+                            onClick={() => navigate(`/worker/${worker.id}`)}
+                            style={{ cursor: "pointer" }}
+                          >
+                            <div className="worker-info">
+                              <div className="worker-avatar-circle">
+                                {worker.name.charAt(0)}
+                              </div>
+                              <div>
+                                <div className="worker-name">{worker.name}</div>
+                                <div className="worker-status-text">
+                                  {worker.lastActive}
+                                </div>
                               </div>
                             </div>
+                            <span
+                              className={`status-dot ${worker.status.toLowerCase()}`}
+                            ></span>
                           </div>
-                          <span
-                            className={`status-dot ${worker.status.toLowerCase()}`}
-                          ></span>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </div>
 
@@ -425,7 +988,14 @@ const Dashboard = () => {
                 </div>
 
                 {/* Bottom Row 2 - More Charts */}
-                <div className="charts-row">
+                <div
+                  className="charts-row"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
+                    gap: "1.5rem",
+                  }}
+                >
                   {/* Task Categories */}
                   <div className="dashboard-card">
                     <div className="card-header">
@@ -438,7 +1008,24 @@ const Dashboard = () => {
                           {(() => {
                             let currentAngle = 0;
                             return taskCategories.map((category, idx) => {
-                              const angle = (category.percentage / 100) * 360;
+                              // Handle the 100% edge case (compare as number since percentage is a string)
+                              if (
+                                parseFloat(category.percentage) === 100 ||
+                                taskCategories.length === 1
+                              ) {
+                                return (
+                                  <circle
+                                    key={idx}
+                                    cx="100"
+                                    cy="100"
+                                    r="80"
+                                    fill={category.color}
+                                  />
+                                );
+                              }
+
+                              const angle =
+                                (parseFloat(category.percentage) / 100) * 360;
                               const startAngle = currentAngle;
                               currentAngle += angle;
 
@@ -484,7 +1071,9 @@ const Dashboard = () => {
                               className="legend-color"
                               style={{ backgroundColor: category.color }}
                             ></div>
-                            <span className="legend-text">{category.name}</span>
+                            <span className="legend-text">
+                              {category.name} ({category.count})
+                            </span>
                             <span className="legend-percentage">
                               {category.percentage}%
                             </span>
@@ -494,103 +1083,16 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  {/* KPIs */}
-                  <div className="dashboard-card">
-                    <div className="card-header">
-                      <h2 className="card-title">Key Performance Indicators</h2>
-                      <p className="card-subtitle">This month's metrics</p>
-                    </div>
-                    <div className="kpi-container">
-                      <div className="kpi-item">
-                        <div
-                          className="kpi-icon"
-                          style={{ backgroundColor: "#3b82f615" }}
-                        >
-                          ⏱️
-                        </div>
-                        <div className="kpi-content">
-                          <div className="kpi-label">
-                            Average Resolution Time
-                          </div>
-                          <div
-                            className="kpi-value"
-                            style={{ color: "#3b82f6" }}
-                          >
-                            2.4 hrs
-                          </div>
-                        </div>
-                      </div>
-                      <div className="kpi-item">
-                        <div
-                          className="kpi-icon"
-                          style={{ backgroundColor: "#10b98115" }}
-                        >
-                          📈
-                        </div>
-                        <div className="kpi-content">
-                          <div className="kpi-label">Success Rate</div>
-                          <div
-                            className="kpi-value"
-                            style={{ color: "#10b981" }}
-                          >
-                            94.5%
-                          </div>
-                        </div>
-                      </div>
-                      <div className="kpi-item">
-                        <div
-                          className="kpi-icon"
-                          style={{ backgroundColor: "#8b5cf615" }}
-                        >
-                          ⚡
-                        </div>
-                        <div className="kpi-content">
-                          <div className="kpi-label">Worker Efficiency</div>
-                          <div
-                            className="kpi-value"
-                            style={{ color: "#8b5cf6" }}
-                          >
-                            7.4/10
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column - Nearby Requests */}
-              <div className="right-column">
-                <div className="dashboard-card requests-card">
-                  <div className="card-header">
-                    <h2 className="card-title">Nearby Requests</h2>
-                    <p className="card-subtitle">Unassigned reports</p>
-                  </div>
-                  <div className="requests-list">
-                    {nearbyRequests.map((request) => (
-                      <div key={request.id} className="request-item">
-                        <div className="request-image">
-                          <span style={{ fontSize: "2rem" }}>
-                            {request.image}
-                          </span>
-                        </div>
-                        <div className="request-details">
-                          <div className="request-location">
-                            {request.location}
-                          </div>
-                          <div className="request-distance">
-                            {request.distance}
-                          </div>
-                          <span
-                            className={`priority-badge ${request.priority.toLowerCase()}`}
-                          >
-                            {request.priority}
-                          </span>
-                        </div>
-                        <button className="accept-btn">Accept</button>
-                      </div>
-                    ))}
-                  </div>
+                  {/* Unassigned Reports */}
+                  <UnassignedReportsSection
+                    reports={reports}
+                    workers={workers}
+                    ngoId={user?.uid}
+                    ngoCategories={ngoData?.categories || []}
+                    ngoData={ngoData}
+                    refetchReports={refetchReports}
+                    refetchWorkers={refetchWorkers}
+                  />
                 </div>
               </div>
             </div>
@@ -610,6 +1112,14 @@ const Dashboard = () => {
           {/* Main Dashboard Content */}
           <div className="dashboard-container">
             <AssignedTasks />
+          </div>
+        </>
+      )}
+      {activeNav == "reports-history" && (
+        <>
+          {/* Main Dashboard Content */}
+          <div className="dashboard-container">
+            <ReportHistoryPage />
           </div>
         </>
       )}

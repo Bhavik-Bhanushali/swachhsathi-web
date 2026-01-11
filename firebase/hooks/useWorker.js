@@ -40,10 +40,12 @@ export const useWorkers = (ngoId) => {
 
         if (ngoId) {
             setIsLoading(true);
+            setError(null);
             try {
                 unsubscribe = WorkerService.getWorkers(
                     ngoId,
                     (workers) => {
+                        console.log('Workers received:', workers);
                         setData(workers);
                         setIsLoading(false);
                     },
@@ -59,6 +61,7 @@ export const useWorkers = (ngoId) => {
                 setIsLoading(false);
             }
         } else {
+            console.log('No ngoId provided');
             setData([]);
             setIsLoading(false);
         }
@@ -69,6 +72,37 @@ export const useWorkers = (ngoId) => {
             }
         };
     }, [ngoId]);
+
+    return { data, isLoading, error };
+};
+
+// Hook to fetch a single worker by ID
+export const useWorkerById = (workerId) => {
+    const [data, setData] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchWorker = async () => {
+            if (workerId) {
+                setIsLoading(true);
+                try {
+                    const worker = await WorkerService.getWorkerById(workerId);
+                    setData(worker);
+                    setIsLoading(false);
+                } catch (err) {
+                    console.error("Error fetching worker:", err);
+                    setError(err);
+                    setIsLoading(false);
+                }
+            } else {
+                setData(null);
+                setIsLoading(false);
+            }
+        };
+
+        fetchWorker();
+    }, [workerId]);
 
     return { data, isLoading, error };
 };

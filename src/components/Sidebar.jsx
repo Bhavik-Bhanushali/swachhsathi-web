@@ -1,4 +1,5 @@
 import React from 'react';
+import { Menu, X } from 'lucide-react';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen, activeNav, setActiveNav, navItems }) => {
     return (
@@ -24,7 +25,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, activeNav, setActiveNav, navItem
                 className="sidebar-toggle"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
             >
-                {sidebarOpen ? '✕' : '☰'}
+                {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
         </>
     );

@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider value={auth}>
       {!auth.isLoading && children}
     </AuthContext.Provider>
-  );
+  );  
 };
 
 export const useAuth = () => useContext(AuthContext);

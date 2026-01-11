@@ -3,11 +3,12 @@ import './SignInPage.css';
 import logo from '../assets/images/logo_without_bg.png';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ArrowRight } from 'lucide-react';
 
 const SignInPage = () => {
   const [role, setRole] = useState('citizen');
   const navigate = useNavigate();
-  const { signIn } = useAuth(); // Assuming signIn is available in auth context
+  const { signIn, signOut } = useAuth(); // Assuming signIn is available in auth context
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,7 +16,16 @@ const SignInPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await signIn({ email, password });
+      const user = await signIn({ email, password });
+      
+      // Check if user type is admin
+      if (user?.role !== 'admin') {
+        await signOut();
+        alert('Access Denied: This portal is for NGO (Admin) only.');
+        setError('Access Denied: This portal is for NGO (Admin) only.');
+        return;
+      }
+      
       navigate('/dashboard');
     } catch (err) {
       console.error(err);
@@ -67,7 +77,7 @@ const SignInPage = () => {
 
             <button type="submit" className="btn btn-primary btn-full">
               <span>Sign In</span>
-              <span className="btn-icon">→</span>
+              <ArrowRight size={18} className="btn-icon" />
             </button>
           </form>
 

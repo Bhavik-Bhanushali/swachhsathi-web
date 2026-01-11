@@ -5,6 +5,8 @@ import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 import Dashboard from './pages/Dashboard';
 import WorkerListPage from './pages/WorkerListPage';
+import WorkerDetailPage from './pages/WorkerDetailPage';
+import ReportDetailsPage from './pages/ReportDetailsPage';
 
 import ProtectedRoute from './routes/ProtectedRoute';
 import PublicRoute from './routes/PublicRoute';
@@ -35,14 +37,32 @@ const App = () => {
           }
         />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/report-details/:reportId"
+            element={
+              <ProtectedRoute>
+                <ReportDetailsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/worker/:workerId"
+            element={
+              <ProtectedRoute>
+                <WorkerDetailPage />
+              </ProtectedRoute>
+            }
+          />
         
       </Routes>
     </>

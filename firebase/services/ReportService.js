@@ -1,171 +1,305 @@
-// import firestore from '@react-native-firebase/firestore';
-
-import { functions, db } from '../config';
-import { collection, query, where, getDocs, onSnapshot, orderBy, getDoc, doc, updateDoc } from 'firebase/firestore';
-
-// export interface Report {
-//   id: string;
-//   userId: string;
-//   userName: string;
-//   userEmail: string;
-//   category?: string;
-//   description?: string;
-//   imageUrl?: string;
-//   location: {
-//     address: string;
-//     latitude: number;
-//     longitude: number;
-//   };
-//   severity: 'Low' | 'Medium' | 'High';
-//   status: 'pending' | 'assigned' | 'in-progress' | 'resolved';
-//   workerId?: string;
-//   workerName?: string;
-//   createdAt: any;
-//   updatedAt: any;
-// }
+import { db } from "../config";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  getDoc,
+  doc,
+  updateDoc,
+  addDoc,
+  deleteDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 
 class ReportService {
-   collectionName = 'reports';
+  collectionName = "reports";
 
-  // Get all reports
+  /* ---------------- GET ALL REPORTS ---------------- */
   async getAllReports() {
     try {
-        const q = query(
-            collection(db, this.collectionName),
-            orderBy('updatedAt', 'desc')
-        );
+      const q = query(
+        collection(db, this.collectionName),
+        orderBy("updatedAt", "desc")
+      );
       const snapshot = await getDocs(q);
-      
-      
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+
+      return await Promise.all(
+        snapshot.docs.map(async (reportDoc) => {
+          let workerName = null;
+          console.log(reportDoc.data().assignedTo);
+          
+          if (reportDoc.data().assignedTo) {
+            const workerSnap = await getDoc(
+              doc(db, "users", reportDoc.data().assignedTo)
+            );
+            if (workerSnap.exists()) {
+              workerName = workerSnap.data().name;
+            }
+          }
+
+          return {
+            id: reportDoc.id,
+            ...reportDoc.data(),
+            workerName,
+          };
+        })
+      );
     } catch (error) {
-      console.error('Error fetching all reports:', error);
-      // Fallback: fetch without ordering
-      const snapshot = await getDocs(collection(db, this.collectionName));
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      console.error("Error fetching all reports:", error);
+      return [];
     }
   }
 
-  // Get user reports by userId
+  /* ---------------- USER REPORTS ---------------- */
   async getUserReports(userId) {
-    try {
-      const snapshot = await getDocs(query(
+    const snapshot = await getDocs(
+      query(
         collection(db, this.collectionName),
-        where('userId', '==', userId),
-        orderBy('updatedAt', 'desc')
-      ));
-      
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-    } catch (error) {
-      console.error('Error fetching user reports:', error);
-      // Fallback: fetch without ordering
-      const snapshot = await getDocs(query(
-        collection(db, this.collectionName),
-        where('userId', '==', userId)
-      ));
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-    }
+        where("userId", "==", userId),
+        orderBy("updatedAt", "desc")
+      )
+    );
+
+    return await Promise.all(
+      snapshot.docs.map(async (reportDoc) => {
+        let workerName = null;
+
+        if (reportDoc.data().assignedTo) {
+          const workerSnap = await getDoc(
+            doc(db, "users", reportDoc.data().assignedTo)
+          );
+          if (workerSnap.exists()) {
+            workerName = workerSnap.data().name;
+          }
+        }
+
+        return {
+          id: reportDoc.id,
+          ...reportDoc.data(),
+          workerName,
+        };
+      })
+    );
   }
 
-  // Get single report by ID
+  /* ---------------- SINGLE REPORT ---------------- */
   async getReport(reportId) {
-    const document = await getDoc(doc(collection(db, this.collectionName), reportId));
-    
-    if (!document.exists) {
-      return null;
+    const reportSnap = await getDoc(
+      doc(db, this.collectionName, reportId)
+    );
+
+    if (!reportSnap.exists()) return null;
+
+    const reportData = reportSnap.data();
+    let workerName = null;
+    let workerEmail = null;
+
+    if (reportData.assignedTo) {
+      const workerSnap = await getDoc(
+        doc(db, "users", reportData.assignedTo)
+      );
+      if (workerSnap.exists()) {
+        workerName = workerSnap.data().name;
+        workerEmail = workerSnap.data().email;
+      }
     }
-    
+
     return {
-      id: document.id,
-      ...document.data(),
+      id: reportSnap.id,
+      ...reportData,
+      workerName,
+      workerEmail,
     };
   }
 
-  // Create new report
+  /* ---------------- CREATE REPORT ---------------- */
   async createReport(reportData) {
-    const docRef = await addDoc(collection(db, this.collectionName), {
-      ...reportData,
-      createdAt: firestore.FieldValue.serverTimestamp(),
-      updatedAt: firestore.FieldValue.serverTimestamp(),
-    });
-    
+    const docRef = await addDoc(
+      collection(db, this.collectionName),
+      {
+        ...reportData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }
+    );
     return docRef.id;
   }
 
-  // Update report status
-  async updateReportStatus(
-    reportId, 
-    status,
-    workerId,
-    workerName
-  ) {
+  /* ---------------- UPDATE STATUS ---------------- */
+  async updateReportStatus(reportId, status, workerId, workerName) {
     const updateData = {
       status,
-      updatedAt: firestore.FieldValue.serverTimestamp(),
+      updatedAt: serverTimestamp(),
     };
 
-    if (workerId) {
-      updateData.workerId = workerId;
-    }
-    
-    if (workerName) {
-      updateData.workerName = workerName;
-    }
+    if (workerId) updateData.assignedTo = workerId;
+    if (workerName) updateData.workerName = workerName;
 
-    await updateDoc(doc(collection(db, this.collectionName), reportId), updateData);
+    await updateDoc(
+      doc(db, this.collectionName, reportId),
+      updateData
+    );
   }
 
-  // Update report
+  /* ---------------- UPDATE REPORT ---------------- */
   async updateReport(reportId, data) {
-    await updateDoc(doc(collection(db, this.collectionName), reportId), {
-      ...data,
-      updatedAt: firestore.FieldValue.serverTimestamp(),
-    });
+    await updateDoc(
+      doc(db, this.collectionName, reportId),
+      {
+        ...data,
+        updatedAt: serverTimestamp(),
+      }
+    );
   }
 
-  // Delete report
+  /* ---------------- DELETE REPORT ---------------- */
   async deleteReport(reportId) {
-    await deleteDoc(doc(collection(db, this.collectionName), reportId));
+    await deleteDoc(
+      doc(db, this.collectionName, reportId)
+    );
   }
 
-  // Get reports by status
+  /* ---------------- BY STATUS ---------------- */
   async getReportsByStatus(status) {
-    const snapshot = await getDocs(query(
-      collection(db, this.collectionName),
-      where('status', '==', status),
-      orderBy('createdAt', 'desc')
-    ));
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
+    const snapshot = await getDocs(
+      query(
+        collection(db, this.collectionName),
+        where("status", "==", status),
+        orderBy("createdAt", "desc")
+      )
+    );
+
+    return await Promise.all(
+      snapshot.docs.map(async (reportDoc) => {
+        let workerName = null;
+
+        if (reportDoc.data().assignedTo) {
+          const workerSnap = await getDoc(
+            doc(db, "users", reportDoc.data().assignedTo)
+          );
+          if (workerSnap.exists()) {
+            workerName = workerSnap.data().name;
+          }
+        }
+
+        return {
+          id: reportDoc.id,
+          ...reportDoc.data(),
+          workerName,
+        };
+      })
+    );
+  }
+
+  /* ---------------- WORKER REPORTS ---------------- */
+  async getWorkerReports(workerId) {
+    const snapshot = await getDocs(
+      query(
+        collection(db, this.collectionName),
+        where("assignedTo", "==", workerId),
+        orderBy("createdAt", "desc")
+      )
+    );
+
+    const workerSnap = await getDoc(doc(db, "users", workerId));
+    const workerName = workerSnap.exists()
+      ? workerSnap.data().name
+      : null;
+
+    return snapshot.docs.map((reportDoc) => ({
+      id: reportDoc.id,
+      ...reportDoc.data(),
+      workerName,
     }));
   }
 
-  // Get worker reports
-  async getWorkerReports(workerId) {
-    const snapshot = await getDocs(query(
-      collection(db, this.collectionName),
-      where('workerId', '==', workerId),
-      orderBy('createdAt', 'desc')
-    ));
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+  /* ---------------- NGO REPORTS ---------------- */
+  async getReportsByNgoId(ngoId) {
+    // Fetch reports assigned to this NGO
+    const assignedSnapshot = await getDocs(
+      query(
+        collection(db, this.collectionName),
+        where("ngoId", "==", ngoId),
+        orderBy("createdAt", "desc")
+      )
+    );
+
+    // Fetch unassigned pending reports (no ngoId set yet)
+    const pendingSnapshot = await getDocs(
+      query(
+        collection(db, this.collectionName),
+        where("status", "in", ["pending", "unassigned"]),
+        orderBy("createdAt", "desc")
+      )
+    );
+
+    // Combine both results, avoiding duplicates
+    const assignedReportIds = new Set(assignedSnapshot.docs.map(doc => doc.id));
+    const allDocs = [
+      ...assignedSnapshot.docs,
+      ...pendingSnapshot.docs.filter(doc => !assignedReportIds.has(doc.id))
+    ];
+
+    return await Promise.all(
+      allDocs.map(async (reportDoc) => {
+        let workerName = null;
+        let workerEmail = null;
+
+        if (reportDoc.data().assignedTo) {
+          const workerSnap = await getDoc(
+            doc(db, "users", reportDoc.data().assignedTo)
+          );
+          if (workerSnap.exists()) {
+            workerName = workerSnap.data().name;
+            workerEmail = workerSnap.data().email;
+          }
+        }
+
+        return {
+          id: reportDoc.id,
+          ...reportDoc.data(),
+          workerName,
+            workerEmail,
+        };
+      })
+    );
+  }
+
+  /* ---------------- ASSIGNED NGO REPORTS ---------------- */
+  async getAssignedReports() {
+    const snapshot = await getDocs(
+      query(
+        collection(db, this.collectionName),
+        where("status", "==", "pending"),
+        orderBy("createdAt", "desc")
+      )
+    );
+
+    return await Promise.all(
+      snapshot.docs.map(async (reportDoc) => {
+        let workerName = null;
+        let workerEmail = null;
+
+        if (reportDoc.data().assignedTo) {
+          const workerSnap = await getDoc(
+            doc(db, "users", reportDoc.data().assignedTo)
+          );
+          if (workerSnap.exists()) {
+            workerName = workerSnap.data().name;
+            workerEmail = workerSnap.data().email;
+          }
+        }
+
+        return {
+          id: reportDoc.id,
+          ...reportDoc.data(),
+          workerName,
+          workerEmail,
+        };
+      })
+    );
   }
 }
 

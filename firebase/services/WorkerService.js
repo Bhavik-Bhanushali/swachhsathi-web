@@ -1,6 +1,6 @@
 import { httpsCallable } from 'firebase/functions';
 import { functions, db } from '../config';
-import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, getDoc } from 'firebase/firestore';
 // export interface CreateWorkerData {
 //   email: string;
 //   password: string;
@@ -28,18 +28,19 @@ class WorkerService {
         try {
             const q = query(
                 collection(db, 'users'),
-                where('ngoId', '==', ngoId)
+                where('ngoId', '==', ngoId),
+                where('role', '==', 'worker')
             );
 
             const unsubscribe = onSnapshot(q, (querySnapshot) => {
                 const workers = [];
                 querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    // Optional: Double check role if needed, but ngoId presence implies association
-                    if (data.role === 'worker') {
-                        workers.push({ id: doc.id, ...data });
-                    }
+                    console.log(doc.id);
+                    
+                    workers.push({ id: doc.id, ...doc.data(), isActive: doc.data().isActive || false });
                 });
+                console.log(workers);
+                
                 onWorkersUpdated(workers);
             }, (error) => {
                 console.error('Get workers error:', error);
@@ -50,6 +51,25 @@ class WorkerService {
 
         } catch (error) {
             console.error('Setup workers listener error:', error);
+            throw error;
+        }
+    }
+
+    // Get worker by ID
+    async getWorkerById(workerId) {
+        try {
+            const workerDoc = await getDoc(doc(db, 'users', workerId));
+            
+            if (!workerDoc.exists()) {
+                throw new Error('Worker not found');
+            }
+
+            return {
+                id: workerDoc.id,
+                ...workerDoc.data()
+            };
+        } catch (error) {
+            console.error('Get worker by ID error:', error);
             throw error;
         }
     }

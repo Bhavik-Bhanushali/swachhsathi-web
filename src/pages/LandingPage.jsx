@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import './LandingPage.css';
 import logo from '../assets/images/logo_without_bg.png';
+import { Camera, MapPin, TrendingUp, Bell, Map, Globe, ClipboardList, Navigation, CheckCircle, Users, BarChart3, Award, LayoutDashboard, FileText } from 'lucide-react';
 
 const LandingPage = () => {
   const [activeTab, setActiveTab] = useState('citizen');
@@ -8,86 +9,86 @@ const LandingPage = () => {
   const features = {
     citizen: [
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><rect x="16" y="12" width="32" height="28" rx="2" fill="#dbeafe" /><circle cx="32" cy="26" r="8" fill="#3b82f6" /><circle cx="32" cy="26" r="4" fill="#1e40af" /><rect x="24" y="8" width="16" height="6" rx="2" fill="#93c5fd" /><circle cx="42" cy="18" r="2" fill="#ef4444" /></svg>,
+        icon: <Camera size={32} className="feature-icon" />,
         title: 'Photo Upload',
         desc: 'Capture and upload garbage images instantly'
       },
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><circle cx="32" cy="32" r="20" fill="#fecaca" opacity="0.3" /><path d="M32 16 C32 16 40 24 40 32 C40 38 36 42 32 42 C28 42 24 38 24 32 C24 24 32 16 32 16 Z" fill="#ef4444" /><circle cx="32" cy="30" r="4" fill="white" /></svg>,
+        icon: <MapPin size={32} className="feature-icon" />,
         title: 'GPS Auto-Detection',
         desc: 'Automatic location tagging for precise reporting'
       },
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><rect x="12" y="44" width="8" height="12" rx="2" fill="#d1fae5" /><rect x="24" y="36" width="8" height="20" rx="2" fill="#6ee7b7" /><rect x="36" y="28" width="8" height="28" rx="2" fill="#10b981" /><polyline points="16,44 28,36 40,28" fill="none" stroke="#059669" strokeWidth="2" /></svg>,
+        icon: <TrendingUp size={32} className="feature-icon" />,
         title: 'Status Tracking',
         desc: 'Real-time timeline view of report progress'
       },
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><path d="M32 16 L32 32 L44 32" fill="#fef3c7" /><path d="M20 32 C20 32 20 24 32 16 C44 24 44 32 44 32 L44 40 C44 44 40 48 32 48 C24 48 20 44 20 40 Z" fill="#fbbf24" /><ellipse cx="32" cy="48" rx="8" ry="3" fill="#f59e0b" /><circle cx="32" cy="52" r="3" fill="#dc2626" /></svg>,
+        icon: <Bell size={32} className="feature-icon" />,
         title: 'Push Notifications',
         desc: 'Updates on assignment and completion'
       },
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><rect x="16" y="16" width="32" height="32" rx="2" fill="#e0e7ff" /><path d="M24 16 L24 48 M32 16 L32 48 M40 16 L40 48" stroke="#818cf8" strokeWidth="1" opacity="0.5" /><path d="M16 24 L48 24 M16 32 L48 32 M16 40 L48 40" stroke="#818cf8" strokeWidth="1" opacity="0.5" /><circle cx="28" cy="28" r="4" fill="#ef4444" /><circle cx="38" cy="36" r="4" fill="#ef4444" /><circle cx="32" cy="42" r="4" fill="#ef4444" /></svg>,
+        icon: <Map size={32} className="feature-icon" />,
         title: 'Nearby Reports',
         desc: 'View garbage hotspots in your area'
       },
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><circle cx="32" cy="32" r="24" fill="#dbeafe" /><ellipse cx="32" cy="32" rx="24" ry="12" fill="none" stroke="#3b82f6" strokeWidth="2" /><ellipse cx="32" cy="32" rx="12" ry="24" fill="none" stroke="#3b82f6" strokeWidth="2" /><line x1="8" y1="32" x2="56" y2="32" stroke="#3b82f6" strokeWidth="2" /><circle cx="20" cy="24" r="2" fill="#1e40af" /><circle cx="44" cy="28" r="2" fill="#1e40af" /><circle cx="32" cy="40" r="2" fill="#1e40af" /></svg>,
+        icon: <Globe size={32} className="feature-icon" />,
         title: 'Multi-Language Support',
         desc: 'Accessibility for diverse users'
       },
     ],
     worker: [
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><rect x="16" y="12" width="32" height="40" rx="4" fill="#e0e7ff" /><line x1="24" y1="24" x2="40" y2="24" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" /><line x1="24" y1="32" x2="40" y2="32" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" /><line x1="24" y1="40" x2="40" y2="40" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" /><circle cx="20" cy="24" r="2" fill="#10b981" /></svg>,
+        icon: <ClipboardList size={32} className="feature-icon" />,
         title: 'Task Management',
         desc: 'View assigned cleanup tasks efficiently'
       },
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><circle cx="32" cy="32" r="22" fill="none" stroke="#dbeafe" strokeWidth="2" /><path d="M32 12 L38 28 L32 32 Z" fill="#ef4444" /><circle cx="32" cy="32" r="4" fill="#1e40af" /><text x="32" y="20" textAnchor="middle" fill="#3b82f6" fontSize="8" fontWeight="bold">N</text></svg>,
+        icon: <Navigation size={32} className="feature-icon" />,
         title: 'Location Navigation',
         desc: 'GPS-guided route to report location'
       },
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><path d="M16 48 L32 16 L48 48 Z" fill="#fef3c7" /><path d="M16 48 L32 16 L48 48 Z" fill="none" stroke="#f59e0b" strokeWidth="3" strokeLinejoin="round" /><path d="M24 48 L32 32 L40 48" fill="#fbbf24" /></svg>,
+        icon: <TrendingUp size={32} className="feature-icon" />,
         title: 'Progress Updates',
         desc: 'Real-time status updates on tasks'
       },
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><rect x="12" y="16" width="20" height="32" rx="2" fill="#fecaca" /><rect x="32" y="16" width="20" height="32" rx="2" fill="#d1fae5" /><circle cx="22" cy="28" r="4" fill="#dc2626" /><circle cx="42" cy="28" r="4" fill="#10b981" /></svg>,
+        icon: <Camera size={32} className="feature-icon" />,
         title: 'Before/After Photos',
         desc: 'Document cleanup work with proof'
       },
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><circle cx="32" cy="32" r="24" fill="#d1fae5" /><path d="M20 32 L28 40 L44 24" fill="none" stroke="#059669" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /></svg>,
+        icon: <CheckCircle size={32} className="feature-icon" />,
         title: 'Task Completion',
         desc: 'Mark jobs as done with evidence'
       },
     ],
     admin: [
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><rect x="12" y="12" width="40" height="40" rx="4" fill="#e0e7ff" /><line x1="20" y1="44" x2="44" y2="20" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" /><circle cx="20" cy="44" r="3" fill="#8b5cf6" /><circle cx="32" cy="32" r="3" fill="#8b5cf6" /><circle cx="44" cy="20" r="3" fill="#8b5cf6" /></svg>,
+        icon: <LayoutDashboard size={32} className="feature-icon" />,
         title: 'Dashboard',
         desc: 'Overview of all complaints and statistics'
       },
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><circle cx="28" cy="28" r="16" fill="none" stroke="#3b82f6" strokeWidth="3" /><line x1="40" y1="40" x2="50" y2="50" stroke="#3b82f6" strokeWidth="4" strokeLinecap="round" /><line x1="20" y1="28" x2="36" y2="28" stroke="#1e40af" strokeWidth="2" /><line x1="20" y1="24" x2="36" y2="24" stroke="#1e40af" strokeWidth="2" /><line x1="20" y1="32" x2="36" y2="32" stroke="#1e40af" strokeWidth="2" /></svg>,
+        icon: <FileText size={32} className="feature-icon" />,
         title: 'Advanced Filtering',
         desc: 'Filter by status, zone, and priority'
       },
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><circle cx="32" cy="20" r="8" fill="#a78bfa" /><circle cx="20" cy="44" r="6" fill="#c4b5fd" /><circle cx="44" cy="44" r="6" fill="#c4b5fd" /><line x1="32" y1="28" x2="24" y2="40" stroke="#8b5cf6" strokeWidth="2" /><line x1="32" y1="28" x2="40" y2="40" stroke="#8b5cf6" strokeWidth="2" /></svg>,
+        icon: <Users size={32} className="feature-icon" />,
         title: 'Task Assignment',
         desc: 'Assign reports to available workers'
       },
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><circle cx="32" cy="32" r="24" fill="none" stroke="#fbbf24" strokeWidth="3" strokeDasharray="4 4" /><circle cx="32" cy="32" r="16" fill="#fef3c7" /><circle cx="32" cy="32" r="8" fill="#f59e0b" /><circle cx="32" cy="16" r="3" fill="#dc2626" /></svg>,
+        icon: <Users size={32} className="feature-icon" />,
         title: 'Worker Management',
         desc: 'Monitor field team performance'
       },
       {
-        icon: <svg viewBox="0 0 64 64" className="feature-icon-svg"><rect x="16" y="38" width="6" height="18" rx="2" fill="#6366f1" /><rect x="26" y="30" width="6" height="26" rx="2" fill="#8b5cf6" /><rect x="36" y="24" width="6" height="32" rx="2" fill="#a78bfa" /><rect x="46" y="18" width="6" height="38" rx="2" fill="#c4b5fd" /></svg>,
+        icon: <BarChart3 size={32} className="feature-icon" />,
         title: 'Analytics',
         desc: 'Comprehensive insights and trends'
       },
